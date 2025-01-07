@@ -98,6 +98,32 @@ def changeLhs (lhs' : Expr) : TacticM Unit := do
    withMainContext do
      changeLhs (← zetaReduce (← getLhs))
 
+/-- Removes the hypotheses referred to by `fvarId` from the context of the currently focused `conv`
+goal, provided that `fvarId` is not referenced by another hypothesis or the current `conv`-focused
+target. -/
+def convClear (mvarId : MVarId) (fvarId : FVarId) : MetaM MVarId := do
+  let (lhs, rhs) ← getLhsRhsCore mvarId
+  -- The RHS metavariable depends on every fvar in its local context (including `fvarId`), so we
+  -- temporarily replace it with a context-less mvar so that only dependents in the LHS are detected
+  let rhs' ← mkFreshExprMVarAt {} (← getLocalInstances) (← inferType rhs)
+  let tmpGoal ← mkFreshExprSyntheticOpaqueMVar (mkLHSGoalRaw (← mkEq lhs rhs'))
+  let clearedMVar ← tmpGoal.mvarId!.clear fvarId
+  rhs'.mvarId!.assign rhs
+  tmpGoal.mvarId!.assign (.mvar mvarId)
+  mvarId.assign (.mvar clearedMVar)
+  return clearedMVar
+
+@[builtin_tactic Lean.Parser.Tactic.Conv.clear] def evalClear : Tactic := fun stx => do
+  match stx with
+  | `(conv| clear $hs*) => do
+    let fvarIds ← getFVarIds hs
+    let fvarIds ← withMainContext <| sortFVarIds fvarIds
+    for fvarId in fvarIds.reverse do
+      withMainContext do
+        let mvarId ← convClear (← getMainGoal) fvarId
+        replaceMainGoal [mvarId]
+  | _ => throwUnsupportedSyntax
+
 /-- Evaluate `sepByIndent conv "; " -/
 def evalSepByIndentConv (stx : Syntax) : TacticM Unit := do
   for arg in stx.getArgs, i in [:stx.getArgs.size] do
