@@ -121,7 +121,7 @@ open Meta
     elabTerm valNew expectedType?
   | _ => throwUnsupportedSyntax
 
-@[builtin_macro Lean.Parser.Term.have] def expandHave : Macro := fun stx =>
+@[builtin_macro Lean.Parser.Term.have] def expandHave : Macro := fun stx => do
   match stx with
   | `(have $hy:hygieneInfo $bs* $[: $type]? := $val; $body) =>
     `(have $(HygieneInfo.mkIdent hy `this (canonical := true)) $bs* $[: $type]? := $val; $body)
@@ -150,6 +150,8 @@ open Meta
     let b := ⟨b.raw.setKind `Lean.Parser.Term.byTactic⟩
     `(have%$tk $hy:hygieneInfo : $type := $body; $b:byTactic)
   | _ => Macro.throwUnsupported
+
+-- def makeHaveLetFun (tp : TSyntax `ident)
 
 open Lean.Parser in
 private def elabParserMacroAux (prec e : Term) (withAnonymousAntiquot : Bool) : TermElabM Syntax := do
@@ -556,6 +558,40 @@ def elabUnsafe : TermElab := fun stx expectedType? =>
         return (← (← elabTerm body expectedType).abstractM #[x]).instantiate #[val]
   | _ => throwUnsupportedSyntax
 
+open Parser Term in
+@[term_parser] def «haveI'» := leading_parser
+  withPosition ("haveJ " >> haveDecl) >> optSemicolon termParser
+open Parser Term in
+@[term_parser] def «letI'» := leading_parser
+  withPosition ("letJ " >> haveDecl) >> optSemicolon termParser
+
+register_builtin_option letHaveErrors : Bool := {
+  defValue := true
+  descr := "display errors when `have` is used to bind data or `let` is used to bind proofs"
+}
+
+def haveLetErrorMessageFor (usedBinder correctBinder : String) (needProp : Bool) (binderName : Ident) (badType : Expr) :=
+  let intendedAdj := if needProp then "propositional" else "data"
+  let intendedSing := if needProp then "a proposition" else "data"
+  let oppositePlur := if needProp then "data" else "propositions"
+  m!"`{usedBinder}` is intended for {intendedAdj} bindings, but '{binderName}' has type{indentExpr badType}\nwhich is not {intendedSing}. \
+     Use `{correctBinder}` for binding {oppositePlur}, or use `{usedBinder}!` if you are certain that `{usedBinder}` is appropriate here."
+
+@[term_elab haveI'] def elabHaveI' : TermElab := fun stx expectedType? => do
+  match stx with
+  | `(haveJ $x:ident $bs* : $ty := $val; $body) =>
+    withExpectedType expectedType? fun expectedType => do
+      let (ty, val) ← elabBinders bs fun bs => do
+        let ty ← elabType ty
+        let val ← elabTermEnsuringType val ty
+        -- if letHaveErrors.get (← getOptions) then
+        unless (← inferType ty).isProp do
+          logError <| haveLetErrorMessageFor "haveI" "letI" true x ty
+        pure (← mkForallFVars bs ty, ← mkLambdaFVars bs val)
+      withLocalDeclD x.getId ty fun x => do
+        return (← (← elabTerm body expectedType).abstractM #[x]).instantiate #[val]
+  | _ => throwUnsupportedSyntax
+
 @[builtin_term_elab Lean.Parser.Term.letI] def elabLetI : TermElab := fun stx expectedType? => do
   match stx with
   | `(letI $x:ident $bs* : $ty := $val; $body) =>
@@ -568,4 +604,79 @@ def elabUnsafe : TermElab := fun stx expectedType? =>
         return (← (← elabTerm body expectedType).abstractM #[x]).instantiate #[val]
   | _ => throwUnsupportedSyntax
 
+@[term_elab Lean.Parser.Term.letI] def elabLetI' : TermElab := fun stx expectedType? => do
+  match stx with
+  | `(letJ $x:ident $bs* : $ty := $val; $body) =>
+    withExpectedType expectedType? fun expectedType => do
+      let (ty, val) ← elabBinders bs fun bs => do
+        let ty ← elabType ty
+        let val ← elabTermEnsuringType val ty
+        if (← inferType ty).isProp then
+          logError <| haveLetErrorMessageFor "letI" "haveI" false x ty
+        pure (← mkForallFVars bs ty, ← mkLambdaFVars bs val)
+      withLetDecl x.getId ty val fun x => do
+        return (← (← elabTerm body expectedType).abstractM #[x]).instantiate #[val]
+  | _ => throwUnsupportedSyntax
+
+def expandHaveStx [Monad m] [MonadRef m] [MonadQuotation m] : Syntax → m (Option Syntax) := fun stx => do
+  match stx with
+  | `(have $hy:hygieneInfo $bs* $[: $type]? := $val; $body) =>
+    `(have $(HygieneInfo.mkIdent hy `this (canonical := true)) $bs* $[: $type]? := $val; $body)
+  | `(have $hy:hygieneInfo $bs* $[: $type]? $alts; $body)   =>
+    `(have $(HygieneInfo.mkIdent hy `this (canonical := true)) $bs* $[: $type]? $alts; $body)
+  | `(have $x:ident $bs* $[: $type]? := $val; $body) => `(let_fun $x $bs* $[: $type]? := $val; $body)
+  | `(have $x:ident $bs* $[: $type]? $alts; $body)   => `(let_fun $x $bs* $[: $type]? $alts; $body)
+  | `(have _%$x     $bs* $[: $type]? := $val; $body) => `(let_fun _%$x $bs* $[: $type]? := $val; $body)
+  | `(have _%$x     $bs* $[: $type]? $alts; $body)   => `(let_fun _%$x $bs* $[: $type]? $alts; $body)
+  | `(have $pattern:term $[: $type]? := $val; $body) => `(let_fun $pattern:term $[: $type]? := $val; $body)
+  | _ => return none
+
+#check elabLetDeclCore
+
+@[builtin_term_elab Lean.Parser.Term.have] def elabHave' : TermElab := fun stx expectedType? => do
+  let some stx ← expandHaveStx stx
+    | throwUnsupportedSyntax
+  let elabResult ← elabTerm stx expectedType?
+  sorry
+
+-- def checkHaveType (tp : Option Term) (val : Term) : TermElabM Unit := do
+--   let tp ← tp.mapM <| (elabTerm · none)
+--   let tp ← elabTerm val
+
+/-
+Idea: turn `have` into a term elab rather than a macro.
+Elab the `let_fun` and see what type comes back.
+If that type isn't a `Prop`, bad user!
+-/
+
+-- @[builtin_macro Lean.Parser.Term.have] def expandHave' : Macro := fun stx => do
+--   match stx with
+--   | `(have $hy:hygieneInfo $bs* $[: $type]? := $val; $body) =>
+--     `(have $(HygieneInfo.mkIdent hy `this (canonical := true)) $bs* $[: $type]? := $val; $body)
+--   | `(have $hy:hygieneInfo $bs* $[: $type]? $alts; $body)   =>
+--     `(have $(HygieneInfo.mkIdent hy `this (canonical := true)) $bs* $[: $type]? $alts; $body)
+--   | `(have $x:ident $bs* $[: $type]? := $val; $body) =>
+--     checkHaveType val
+--     `(let_fun $x $bs* $[: $type]? := $val; $body)
+--   | `(have $x:ident $bs* $[: $type]? $alts; $body)   =>
+--     checkHaveType val
+--     `(let_fun $x $bs* $[: $type]? $alts; $body)
+--   | `(have _%$x     $bs* $[: $type]? := $val; $body) =>
+--     checkHaveType val
+--     `(let_fun _%$x $bs* $[: $type]? := $val; $body)
+--   | `(have _%$x     $bs* $[: $type]? $alts; $body)   =>
+--     checkHaveType val
+--     `(let_fun _%$x $bs* $[: $type]? $alts; $body)
+--   | `(have $pattern:term $[: $type]? := $val; $body) =>
+--     checkHaveType val
+--     `(let_fun $pattern:term $[: $type]? := $val; $body)
+--   | _                                                => Macro.throwUnsupported
+
 end Lean.Elab.Term
+
+theorem test : 1 = 1 :=
+  haveJ h : Nat := 21
+  rfl
+
+#print test
+#print Lean.Elab.Term.letHaveErrors

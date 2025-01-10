@@ -694,6 +694,8 @@ def elabLetDeclAux (id : Syntax) (binders : Array Syntax) (typeStx : Syntax) (va
       pure (type, val, binders)
   let kind := kindOfBinderName id.getId
   trace[Elab.let.decl] "{id.getId} : {type} := {val}"
+  -- TODO: we need to propagate `type` up. There's the added wrinkle that, at this point, it may be
+  -- a metavariable -- perhaps we need to wait until we've done the next elaboration? Check this!
   let result ← if useLetExpr then
     withLetDecl id.getId (kind := kind) type val fun x => do
       addLocalVarInfo id x
@@ -743,6 +745,8 @@ def elabLetDeclCore (stx : Syntax) (expectedType? : Option Expr) (useLetExpr : B
   let body    := stx[3]
   if letDecl.getKind == ``Lean.Parser.Term.letIdDecl then
     let { id, binders, type, value } := mkLetIdDeclView letDecl
+    -- TODO: check `type` and report appropriately to the caller (though this would be subsumed by having a check in `elabLetDeclAux`,
+    -- which it looks like we need anyway for the remaining cases)
     let id ← if id.isIdent then pure id else mkFreshIdent id (canonical := true)
     elabLetDeclAux id binders type value body expectedType? useLetExpr elabBodyFirst usedLetOnly
   else if letDecl.getKind == ``Lean.Parser.Term.letPatDecl then
