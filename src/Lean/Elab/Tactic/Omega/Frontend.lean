@@ -531,11 +531,12 @@ def formatErrorMessage (p : Problem) : OmegaM MessageData := do
       division, and modular remainder by constants."
     else
       let as ← atoms
+      let as ← monadLift (as.mapM mkAssignmentAtom)
       return .ofLazyM (es := as) do
         let mask ← mentioned as p.constraints
         let names ← varNames mask
         return m!"a possible counterexample may satisfy the constraints\n" ++
-          m!"{prettyConstraints names p.constraints}\nwhere\n{prettyAtoms names as mask}"
+          prettyConstraints as p.constraints
   else
     -- formatErrorMessage should not be used in this case
     return "it is trivially solvable"
@@ -568,30 +569,30 @@ where
 
   -- We sort the constraints; otherwise the order is dependent on details of the hashing
   -- and this can cause test suite output churn
-  prettyConstraints (names : Array String) (constraints : Std.HashMap Coeffs Fact) : String :=
+  prettyConstraints (atoms : Array Expr) (constraints : Std.HashMap Coeffs Fact) : MessageData :=
     constraints.toList
       |>.toArray
       |>.qsort (·.1 < ·.1)
-      |>.map (fun ⟨coeffs, ⟨_, cst, _⟩⟩ => "  " ++ prettyConstraint (prettyCoeffs names coeffs) cst)
+      |>.map (fun ⟨coeffs, ⟨_, cst, _⟩⟩ => "  " ++ prettyConstraint (prettyCoeffs atoms coeffs) cst)
       |>.toList
-      |> "\n".intercalate
+      |> (MessageData.joinSep · "\n")
 
-  prettyConstraint (e : String) : Constraint → String
-    | ⟨none, none⟩ => s!"{e} is unconstrained" -- should not happen in error messages
-    | ⟨none, some y⟩ => s!"{e} ≤ {y}"
-    | ⟨some x, none⟩ => s!"{e} ≥ {x}"
+  prettyConstraint (e : MessageData) : Constraint → MessageData
+    | ⟨none, none⟩ => m!"{e} is unconstrained" -- should not happen in error messages
+    | ⟨none, some y⟩ => m!"{e} ≤ {y}"
+    | ⟨some x, none⟩ => m!"{e} ≥ {x}"
     | ⟨some x, some y⟩ =>
       if y < x then "∅" else -- should not happen in error messages
-      s!"{x} ≤ {e} ≤ {y}"
+      m!"{x} ≤ {e} ≤ {y}"
 
-  prettyCoeffs (names : Array String) (coeffs : Coeffs) : String :=
+  prettyCoeffs (atoms : Array Expr) (coeffs : Coeffs) : MessageData :=
     coeffs.toList.enum
       |>.filter (fun (_,c) => c ≠ 0)
       |>.enum
       |>.map (fun (j, (i,c)) =>
         (if j > 0 then if c > 0 then " + " else " - " else if c > 0 then "" else "- ") ++
-        (if Int.natAbs c = 1 then names[i]! else s!"{c.natAbs}*{names[i]!}"))
-      |> String.join
+        (if Int.natAbs c = 1 then m!"{atoms[i]!}" else m!"{c.natAbs}*{atoms[i]!}"))
+      |> (MessageData.joinSep · "")
 
   mentioned (atoms : Array Expr) (constraints : Std.HashMap Coeffs Fact) : MetaM (Array Bool) := do
     let initMask := Array.mkArray atoms.size false
@@ -599,11 +600,12 @@ where
       coeffs.enum.foldl (init := mask) fun mask (i, c) =>
         if c = 0 then mask else mask.set! i true
 
-  prettyAtoms (names : Array String) (atoms : Array Expr) (mask : Array Bool) : MessageData :=
-    (Array.zip names atoms).toList.enum
-      |>.filter (fun (i, _) => mask.getD i false)
-      |>.map (fun (_, (n, a)) => m!" {n} := {a}")
-      |> m!"\n".joinSep
+  -- prettyAtoms (names : Array String) (atoms : Array Expr) (mask : Array Bool) : MetaM MessageData := do
+  --   let atoms' ← atoms.mapM mkAssignmentAtom
+  --   return (Array.zip names atoms).toList.enum
+  --     |>.filter (fun (i, _) => mask.getD i false)
+  --     |>.map (fun (_, (n, a)) => return m!" {← mkAssignmentAtom} := {a}")
+  --     |> m!"\n".joinSep
 
 mutual
 
