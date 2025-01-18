@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Kim Morrison
 -/
 prelude
+-- import Lean.Meta.AtomAssignment
 import Lean.Elab.Tactic.Omega.Core
 import Lean.Elab.Tactic.FalseOrByContra
 import Lean.Elab.Tactic.Config
@@ -531,41 +532,41 @@ def formatErrorMessage (p : Problem) : OmegaM MessageData := do
       division, and modular remainder by constants."
     else
       let as ← atoms
-      let as ← monadLift (as.mapM mkAssignmentAtom)
       return .ofLazyM (es := as) do
-        let mask ← mentioned as p.constraints
-        let names ← varNames mask
-        return m!"a possible counterexample may satisfy the constraints\n" ++
-          prettyConstraints as p.constraints
+        withTrackingAtomAssignment do
+          let as ← as.mapM mkAssignableAtom
+          let mask ← mentioned as p.constraints
+          return m!"a possible counterexample may satisfy the constraints\n" ++
+            prettyConstraints as p.constraints --++ (← mkAtomAssignmentMessageData)
   else
     -- formatErrorMessage should not be used in this case
     return "it is trivially solvable"
 where
-  varNameOf (i : Nat) : String :=
-    let c : Char := .ofNat ('a'.toNat + (i % 26))
-    let suffix := if i < 26 then "" else s!"_{i / 26}"
-    s!"{c}{suffix}"
+--   varNameOf (i : Nat) : String :=
+--     let c : Char := .ofNat ('a'.toNat + (i % 26))
+--     let suffix := if i < 26 then "" else s!"_{i / 26}"
+--     s!"{c}{suffix}"
 
-  inScope (s : String) : MetaM Bool := do
-    let n := .mkSimple s
-    if (← resolveGlobalName n).isEmpty then
-      if ((← getLCtx).findFromUserName? n).isNone then
-        return false
-    return true
+--   inScope (s : String) : MetaM Bool := do
+--     let n := .mkSimple s
+--     if (← resolveGlobalName n).isEmpty then
+--       if ((← getLCtx).findFromUserName? n).isNone then
+--         return false
+--     return true
 
   -- Assign ascending names a, b, c, …, z, a1 … to all atoms mentioned according to the mask
   -- but avoid names in the local or global scope
-  varNames (mask : Array Bool) : MetaM (Array String) := do
-    let mut names := #[]
-    let mut next := 0
-    for h : i in [:mask.size] do
-      if mask[i] then
-        while ← inScope (varNameOf next) do next := next + 1
-        names := names.push (varNameOf next)
-        next := next + 1
-      else
-        names := names.push "(masked)"
-    return names
+  -- varNames (mask : Array Bool) : MetaM (Array String) := do
+  --   let mut names := #[]
+  --   let mut next := 0
+  --   for h : i in [:mask.size] do
+  --     if mask[i] then
+  --       while ← inScope (varNameOf next) do next := next + 1
+  --       names := names.push (varNameOf next)
+  --       next := next + 1
+  --     else
+  --       names := names.push "(masked)"
+  --   return names
 
   -- We sort the constraints; otherwise the order is dependent on details of the hashing
   -- and this can cause test suite output churn
