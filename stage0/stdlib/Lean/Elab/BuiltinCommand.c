@@ -407,6 +407,7 @@ static lean_object* l___regBuiltin_Lean_Elab_Command_elabSynth_declRange__1___cl
 LEAN_EXPORT lean_object* l_List_forIn_x27_loop___at_Lean_Elab_Command_elabWhere_describeOptions___spec__1___lambda__2___boxed(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* l_Array_forIn_x27Unsafe_loop___at_Lean_Elab_Command_elabOpen___spec__19(lean_object*, lean_object*, lean_object*, lean_object*, size_t, size_t, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* l_Array_forIn_x27Unsafe_loop___at_Lean_Elab_Command_elabOmit___spec__11(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, size_t, size_t, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
+lean_object* l_Lean_MessageLog_errorsToInfos(lean_object*);
 LEAN_EXPORT lean_object* l_Lean_resolveNamespaceCore___at_Lean_Elab_Command_elabOpen___spec__7___lambda__1(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 static lean_object* l___regBuiltin_Lean_Elab_Command_elabEnd_declRange__1___closed__4;
 static lean_object* l___regBuiltin_Lean_Elab_Command_elabAddDeclDoc_declRange__1___closed__5;
@@ -747,7 +748,6 @@ lean_object* l_Lean_MessageData_ofConstName(lean_object*, uint8_t);
 LEAN_EXPORT lean_object* l___private_Lean_Elab_BuiltinCommand_0__Lean_Elab_Command_typelessBinder_x3f(lean_object*);
 LEAN_EXPORT lean_object* l_Array_mapMUnsafe_map___at_Lean_Elab_Command_elabWhere_describeOpenDecls___spec__1___boxed(lean_object*, lean_object*, lean_object*);
 lean_object* l_Array_append___rarg(lean_object*, lean_object*);
-lean_object* l_Lean_MessageLog_errorsToWarnings(lean_object*);
 LEAN_EXPORT lean_object* l_Lean_Elab_getDeclarationRange_x3f___at_Lean_Elab_Command_elabModuleDoc___spec__2(lean_object*, lean_object*, lean_object*, lean_object*);
 uint8_t l_Lean_Environment_contains(lean_object*, lean_object*);
 LEAN_EXPORT lean_object* l___regBuiltin_Lean_Elab_Command_elabVariable__1(lean_object*);
@@ -24268,7 +24268,7 @@ if (x_23 == 0)
 {
 lean_object* x_24; lean_object* x_25; lean_object* x_26; lean_object* x_27; lean_object* x_28; lean_object* x_29; lean_object* x_30; 
 x_24 = lean_ctor_get(x_21, 1);
-x_25 = l_Lean_MessageLog_errorsToWarnings(x_24);
+x_25 = l_Lean_MessageLog_errorsToInfos(x_24);
 x_26 = l_Lean_MessageLog_append(x_8, x_25);
 lean_ctor_set(x_21, 1, x_26);
 x_27 = lean_st_ref_set(x_3, x_21, x_22);
@@ -24301,7 +24301,7 @@ lean_inc(x_33);
 lean_inc(x_32);
 lean_inc(x_31);
 lean_dec(x_21);
-x_40 = l_Lean_MessageLog_errorsToWarnings(x_32);
+x_40 = l_Lean_MessageLog_errorsToInfos(x_32);
 x_41 = l_Lean_MessageLog_append(x_8, x_40);
 x_42 = lean_alloc_ctor(0, 9, 0);
 lean_ctor_set(x_42, 0, x_31);
@@ -24336,7 +24336,7 @@ if (x_53 == 0)
 {
 lean_object* x_54; lean_object* x_55; lean_object* x_56; lean_object* x_57; uint8_t x_58; 
 x_54 = lean_ctor_get(x_51, 1);
-x_55 = l_Lean_MessageLog_errorsToWarnings(x_54);
+x_55 = l_Lean_MessageLog_errorsToInfos(x_54);
 x_56 = l_Lean_MessageLog_append(x_8, x_55);
 lean_ctor_set(x_51, 1, x_56);
 x_57 = lean_st_ref_set(x_3, x_51, x_52);
@@ -24385,7 +24385,7 @@ lean_inc(x_64);
 lean_inc(x_63);
 lean_inc(x_62);
 lean_dec(x_51);
-x_71 = l_Lean_MessageLog_errorsToWarnings(x_63);
+x_71 = l_Lean_MessageLog_errorsToInfos(x_63);
 x_72 = l_Lean_MessageLog_append(x_8, x_71);
 x_73 = lean_alloc_ctor(0, 9, 0);
 lean_ctor_set(x_73, 0, x_62);
@@ -24685,7 +24685,7 @@ if (lean_is_exclusive(x_145)) {
  lean_dec_ref(x_145);
  x_156 = lean_box(0);
 }
-x_157 = l_Lean_MessageLog_errorsToWarnings(x_148);
+x_157 = l_Lean_MessageLog_errorsToInfos(x_148);
 x_158 = l_Lean_MessageLog_append(x_8, x_157);
 if (lean_is_scalar(x_156)) {
  x_159 = lean_alloc_ctor(0, 9, 0);
@@ -24751,7 +24751,7 @@ if (lean_is_exclusive(x_168)) {
  lean_dec_ref(x_168);
  x_179 = lean_box(0);
 }
-x_180 = l_Lean_MessageLog_errorsToWarnings(x_171);
+x_180 = l_Lean_MessageLog_errorsToInfos(x_171);
 x_181 = l_Lean_MessageLog_append(x_8, x_180);
 if (lean_is_scalar(x_179)) {
  x_182 = lean_alloc_ctor(0, 9, 0);
