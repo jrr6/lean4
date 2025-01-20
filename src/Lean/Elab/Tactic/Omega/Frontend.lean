@@ -4,7 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Kim Morrison
 -/
 prelude
--- import Lean.Meta.AtomAssignment
+import Lean.Meta.AtomAssignment
 import Lean.Elab.Tactic.Omega.Core
 import Lean.Elab.Tactic.FalseOrByContra
 import Lean.Elab.Tactic.Config
@@ -521,6 +521,7 @@ partial def processFacts (p : MetaProblem) : OmegaM (MetaProblem × Nat) := do
 
 end MetaProblem
 
+open AtomAssignment in
 /--
 Helpful error message when omega cannot find a solution
 -/
@@ -534,10 +535,11 @@ def formatErrorMessage (p : Problem) : OmegaM MessageData := do
       let as ← atoms
       return .ofLazyM (es := as) do
         withTrackingAtomAssignment do
-          let as ← as.mapM mkAssignableAtom
           let mask ← mentioned as p.constraints
+          let as ← as.mapIdxM fun i a =>
+            mkAssignableAtom a (masked := !mask[i]!)
           return m!"a possible counterexample may satisfy the constraints\n" ++
-            prettyConstraints as p.constraints --++ (← mkAtomAssignmentMessageData)
+            prettyConstraints as p.constraints ++ (← mkAtomAssignmentMessageData)
   else
     -- formatErrorMessage should not be used in this case
     return "it is trivially solvable"
@@ -692,6 +694,12 @@ def evalOmega : Tactic
     let cfg ← elabOmegaConfig cfg
     omegaTactic cfg
   | _ => throwUnsupportedSyntax
+
+-- set_option pp.inlineAssignmentAtoms false
+-- -- set_option pp.explicit false
+-- -- set_option pp.raw false
+-- theorem test (q r s : Nat) (h : q = r) (h' : r ≥ s) : s ≥ q := by
+--   omega
 
 builtin_initialize bvOmegaSimpExtension : SimpExtension ←
   registerSimpAttr `bv_toNat
