@@ -659,9 +659,9 @@ If that type isn't a `Prop`, bad user!
 
 end Lean.Elab.Term
 
-theorem test : 1 = 1 :=
-  haveJ h : Nat := 21
-  rfl
+-- theorem test : 1 = 1 :=
+--   haveJ h : Nat := 21
+--   rfl
 
-#print test
-#print Lean.Elab.Term.letHaveErrors
+-- #print test
+-- #print Lean.Elab.Term.letHaveErrors

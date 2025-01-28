@@ -1374,11 +1374,12 @@ def withInfoContext' (stx : Syntax) (x : TermElabM Expr)
 structure BodyInfo where
   /-- The body as a fully elaborated term. `none` if the body failed to elaborate. -/
   value? : Option Expr
+  binderType? : Option Expr
 deriving TypeName
 
 /-- Creates an `Info.ofCustomInfo` node backed by a `BodyInfo`. -/
-def mkBodyInfo (stx : Syntax) (value? : Option Expr) : Info :=
-  .ofCustomInfo { stx, value := .mk { value? : BodyInfo } }
+def mkBodyInfo (stx : Syntax) (value? : Option Expr) (binderType? : Option Expr) : Info :=
+  .ofCustomInfo { stx, value := .mk { value?, binderType? : BodyInfo } }
 
 /-- Extracts a `BodyInfo` custom info. -/
 def getBodyInfo? : Info → Option BodyInfo
