@@ -546,6 +546,10 @@ def elabUnsafe : TermElab := fun stx expectedType? =>
       (← `(do $cmds)))
   | _ => throwUnsupportedSyntax
 
+structure InlineBinderInfo where
+  fvarId : FVarId
+deriving TypeName
+
 @[builtin_term_elab Lean.Parser.Term.haveI] def elabHaveI : TermElab := fun stx expectedType? => do
   match stx with
   | `(haveI $x:ident $bs* : $ty := $val; $body) =>
@@ -555,6 +559,10 @@ def elabUnsafe : TermElab := fun stx expectedType? =>
         let val ← elabTermEnsuringType val ty
         pure (← mkForallFVars bs ty, ← mkLambdaFVars bs val)
       withLocalDeclD x.getId ty fun x => do
+        pushInfoLeaf <| .ofCustomInfo {
+          stx,
+          value := .mk { fvarId := x.fvarId! : InlineBinderInfo }
+        }
         return (← (← elabTerm body expectedType).abstractM #[x]).instantiate #[val]
   | _ => throwUnsupportedSyntax
 
@@ -601,6 +609,10 @@ def haveLetErrorMessageFor (usedBinder correctBinder : String) (needProp : Bool)
         let val ← elabTermEnsuringType val ty
         pure (← mkForallFVars bs ty, ← mkLambdaFVars bs val)
       withLetDecl x.getId ty val fun x => do
+        pushInfoLeaf <| .ofCustomInfo {
+          stx,
+          value := .mk { fvarId := x.fvarId! : InlineBinderInfo }
+        }
         return (← (← elabTerm body expectedType).abstractM #[x]).instantiate #[val]
   | _ => throwUnsupportedSyntax
 
@@ -674,9 +686,9 @@ If that type isn't a `Prop`, bad user!
 
 end Lean.Elab.Term
 
-theorem test : 1 = 1 :=
-  haveJ h : Nat := 21
-  rfl
+-- theorem test : 1 = 1 :=
+--   haveJ h : Nat := 21
+--   rfl
 
-#print test
-#print Lean.Elab.Term.letHaveErrors
+-- #print test
+-- #print Lean.Elab.Term.letHaveErrors

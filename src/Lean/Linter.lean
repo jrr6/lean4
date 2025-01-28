@@ -9,6 +9,7 @@ import Lean.Linter.Builtin
 import Lean.Linter.ConstructorAsVariable
 import Lean.Linter.Deprecated
 import Lean.Linter.UnusedVariables
+import Lean.Linter.HaveLet
 import Lean.Linter.MissingDocs
 import Lean.Linter.Omit
 import Lean.Linter.List

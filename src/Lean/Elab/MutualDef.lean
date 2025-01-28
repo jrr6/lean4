@@ -460,6 +460,7 @@ private def elabFunValues (headers : Array DefViewElabHeader) (vars : Array Expr
               let val ← elabTermEnsuringType valStx type <* synthesizeSyntheticMVarsNoPostponing
               -- NOTE: without this `instantiatedMVars`, `mkLambdaFVars` may leave around a redex that
               -- leads to more section variables being included than necessary
+              logInfo m!"elaborating with body info: {valStx} expectingtype {← ppExpr type}"
               instantiateMVarsProfiling val
         let val ← mkLambdaFVars xs val
         if linter.unusedSectionVars.get (← getOptions) && !header.type.hasSorry && !val.hasSorry then
