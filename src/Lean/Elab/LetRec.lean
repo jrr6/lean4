@@ -95,6 +95,7 @@ private def elabLetRecDeclValues (view : LetRecView) : TermElabM (Array Expr) :=
           (mkInfoOnError := (pure <| mkBodyInfo view.valStx none))
           do
              let value ← elabTermEnsuringType view.valStx type
+             logInfo m!"elaborating VIEW with body info: {view.valStx} expectingtype {← ppExpr view.type}"
              mkLambdaFVars xs value
 
 private def registerLetRecsToLift (views : Array LetRecDeclView) (fvars : Array Expr) (values : Array Expr) : TermElabM Unit := do
