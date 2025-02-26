@@ -583,7 +583,7 @@ def toMessageData (e : Kernel.Exception) (opts : Options) : MessageData :=
     | Declaration.thmDecl { name := n, type := type, .. }  => process n type
     | _ => "(kernel) declaration type mismatch" -- TODO fix type checker, type mismatch for mutual decls does not have enough information
   | declHasMVars env constName _        => mkCtx env {} opts m!"(kernel) declaration has metavariables '{.ofConstName constName true}'"
-  | declHasFVars env constName _        => mkCtx env {} opts m!"(kernel) declaration has free variables '{.ofConstName constName true}'"
+  | declHasFVars env constName expr     => mkCtx env {} opts m!"(kernel) declaration has free variables '{.ofConstName constName true}'\n\n{expr}"
   | funExpected env lctx e              => mkCtx env lctx opts m!"(kernel) function expected{indentExpr e}"
   | typeExpected env lctx e             => mkCtx env lctx opts m!"(kernel) type expected{indentExpr e}"
   | letTypeMismatch  env lctx n _ _     => mkCtx env lctx opts m!"(kernel) let-declaration type mismatch '{n}'"
