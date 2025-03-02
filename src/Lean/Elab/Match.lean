@@ -810,6 +810,7 @@ private def elabMatchAltView (discrs : Array Discr) (alt : MatchAltView) (matchT
               unless (← fullApproxDefEq <| isDefEq matchType' matchType) do
                 throwError "type mismatch, alternative {← mkHasTypeButIsExpectedMsg matchType' matchType}"
               let xs := altLHS.fvarDecls.toArray.map LocalDecl.toExpr ++ eqs
+              trace[Elab.match] "create rhs from: {rhs}"
               let rhs ← if xs.isEmpty then pure <| mkSimpleThunk rhs else mkLambdaFVars xs rhs
               trace[Elab.match] "rhs: {rhs}"
               return (altLHS, rhs)

@@ -22,6 +22,12 @@ open Lean.Parser.Term
 
 open Language
 
+instance (priority := high) : Repr Expr where
+  reprPrec e n :=
+    match e with
+    | .mdata _ e' => "mdata (" ++ Lean.instReprExpr.reprPrec e' n ++ ")"
+    | _ => Lean.instReprExpr.reprPrec e n
+
 builtin_initialize
   registerTraceClass `Meta.instantiateMVars
 
@@ -597,8 +603,9 @@ we would have a `LetRecToLift` containing:
 Note that `g` is not a free variable at `(let g : B := ?m₂; body)`. We recover the fact that
 `f` depends on `g` because it contains `m₂`
 -/
-private def mkInitialUsedFVarsMap [Monad m] [MonadMCtx m] (sectionVars : Array Expr) (mainFVarIds : Array FVarId) (letRecsToLift : Array LetRecToLift)
-    : m UsedFVarsMap := do
+private def mkInitialUsedFVarsMap -- [Monad m] [MonadMCtx m]
+    (sectionVars : Array Expr) (mainFVarIds : Array FVarId) (letRecsToLift : Array LetRecToLift)
+    : TermElabM UsedFVarsMap := do
   let mut sectionVarSet := {}
   for var in sectionVars do
     sectionVarSet := sectionVarSet.insert var.fvarId!
@@ -615,7 +622,12 @@ private def mkInitialUsedFVarsMap [Monad m] [MonadMCtx m] (sectionVars : Array E
     for mvarId in mvarIds do
       match (← letRecsToLift.findSomeM? fun (toLift : LetRecToLift) => return if toLift.mvarId == (← getDelayedMVarRoot mvarId) then some toLift.fvarId else none) with
       | some fvarId => set := set.insert fvarId
-      | none        => pure ()
+      | none        =>
+        let root ← getDelayedMVarRoot mvarId
+        let mvarValue ← instantiateMVars (mkMVar root)
+        let state := Lean.collectFVars {} mvarValue
+        trace[Elab.definition] m!"initFVarMap: unrolled {mvarId.name} (root: {(← getDelayedMVarRoot mvarId).name}) -> {indentD (repr mvarValue)}\ncontains: {state.fvarSet.toList.map (·.name)}"
+        set := set.union state.fvarSet
     usedFVarMap := usedFVarMap.insert toLift.fvarId set
   return usedFVarMap
 
@@ -694,12 +706,21 @@ end FixPoint
 
 abbrev FreeVarMap := FVarIdMap (Array FVarId)
 
-private def mkFreeVarMap [Monad m] [MonadMCtx m]
+instance : ToMessageData LetRecToLift where
+  toMessageData lr :=
+    m!"{lr.declName} (f {mkFVar lr.fvarId}, m {lr.mvarId.name}) : {lr.type} := {lr.val}"
+
+private def mkFreeVarMap
+    -- [Monad m] [MonadMCtx m]
     (sectionVars : Array Expr) (mainFVarIds : Array FVarId)
-    (recFVarIds : Array FVarId) (letRecsToLift : Array LetRecToLift) : m FreeVarMap := do
+    (recFVarIds : Array FVarId) (letRecsToLift : Array LetRecToLift) : TermElabM FreeVarMap := do
+  trace[Elab.letrec] "Making fvar map\n§: {sectionVars}\nMain: {mainFVarIds.map mkFVar}\nRec: {recFVarIds.map mkFVar}\nToLift: {letRecsToLift}"
+  -- TODO: we need to figure out why this function doesn't detect that the mvar value depends on f or whatever
   let usedFVarsMap   ← mkInitialUsedFVarsMap sectionVars mainFVarIds letRecsToLift
+  trace[Elab.letrec] "Initial fvar map: {usedFVarsMap.toList.map fun (f, fs) => m!"{mkFVar f} ↦ {fs.toList.map mkFVar}"}"
   let letRecFVarIds  := letRecsToLift.map fun toLift => toLift.fvarId
   let usedFVarsMap   := FixPoint.run letRecFVarIds usedFVarsMap
+  trace[Elab.letrec] "Post-FP fvar map: {usedFVarsMap.toList.map fun (f, fs) => m!"{mkFVar f} ↦ {fs.toList.map mkFVar}"}"
   let mut freeVarMap := {}
   for toLift in letRecsToLift do
     let lctx       := toLift.lctx
@@ -787,9 +808,32 @@ structure LetRecClosure where
   closed     : Expr
   toLift     : LetRecToLift
 
+def printMVarAssignment [Monad m] [MonadMCtx m] : m MessageData := do
+  let mctx ← getMCtx
+  let lt : Name → Name → Bool
+  | .num _ n, .num _ n' => n < n'
+  | _, _ => false
+  let mvars := mctx.decls.toArray.map (·.1) |>.qsort (fun ⟨nm⟩ ⟨nm'⟩ => lt nm nm') |>.toList
+  let assignments ← mvars.mapM fun mvar => do
+    let m ← getExprMVarAssignment? mvar
+    let m ← do
+      if m.isNone then
+        if let some delayedAssignment ← getDelayedMVarAssignment? mvar then
+          pure m!"delayed: {delayedAssignment.mvarIdPending.name}"
+        else pure m
+      else pure m
+    return m!"{mvar.name}: {m}"
+  return MessageData.joinSep assignments "\n"
+
 private def mkLetRecClosureFor (toLift : LetRecToLift) (freeVars : Array FVarId) : TermElabM LetRecClosure := do
+  trace[Elab.letrec] "Making closure for {toLift.declName} with fvars {freeVars.map mkFVar}"
   let lctx := toLift.lctx
   withLCtx lctx toLift.localInstances do
+  trace[Elab.definition] (← printMVarAssignment)
+  -- trace[Elab.definition] "m20 value in context: {repr <| ← instantiateMVars <| mkMVar ⟨.num `_uniq 20⟩}"
+  -- trace[Elab.definition] "m20 whnf: {repr <| ← whnf <| mkApp (mkMVar ⟨.num `_uniq 20⟩) (.const `Nat.zero [])}"
+  -- trace[Elab.definition] "m20 whn then instantiate: {repr <| ← instantiateMVars <| ← whnf <| mkApp (mkMVar ⟨.num `_uniq 20⟩) (.const `Nat.zero [])}"
+  -- trace[Elab.definition] "m20 instantiate then whn: {repr <| ← whnf <| ← instantiateMVars <| mkApp (mkMVar ⟨.num `_uniq 20⟩) (.const `Nat.zero [])}"
   lambdaTelescope toLift.val fun xs val => do
     /-
       Recall that `toLift.type` and `toLift.value` may have different binder annotations.
@@ -815,6 +859,8 @@ private def mkLetRecClosureFor (toLift : LetRecToLift) (freeVars : Array FVarId)
     let type := Closure.mkForall typeLocalDecls <| Closure.mkForall s.newLetDecls type
     let val  := Closure.mkLambda s.localDecls <| Closure.mkLambda s.newLetDecls val
     let c    := mkAppN (Lean.mkConst toLift.declName) s.exprArgs
+    -- TODO: this mvar assignment is where the assignment must propagate!
+    trace[Elab.definition] "Assigning to {toLift.mvarId.name} value {c}"
     toLift.mvarId.assign c
     return {
       ref        := toLift.ref
@@ -825,20 +871,64 @@ private def mkLetRecClosureFor (toLift : LetRecToLift) (freeVars : Array FVarId)
 
 private def mkLetRecClosures (sectionVars : Array Expr) (mainFVarIds : Array FVarId) (recFVarIds : Array FVarId) (letRecsToLift : Array LetRecToLift) : TermElabM (List LetRecClosure) := do
   -- Compute the set of free variables (excluding `recFVarIds`) for each let-rec.
+  -- trace[Elab.definition] "m19 value at instantiation: {(mkMVar ⟨.num `_uniq 19⟩)}"
+  -- trace[Elab.definition] "Before instantiation: {letRecsToLift}"
+  -- let mut letRecsToLift ← letRecsToLift.mapM fun lr => return { lr with val := (← instantiateMVarsProfiling lr.val) }
+  -- trace[Elab.definition] "After instantiation: {letRecsToLift}"
+  -- Note: we must instantiate mvars before creating the initial free var map because some dependencies
+  -- may be hidden behind mvars (e.g., mvars created by match expressions)
+  -- let mut letRecsToLift ← letRecsToLift.mapM fun lr => return { lr with val := (← instantiateMVarsProfiling lr.val) }
+  -- trace[Elab.definition] "All Instantiated: {letRecsToLift.map fun lr => repr lr.val}"
+
+  -- FIXME: the issue here might be that we need to instantiate the mvars in `middle` in order to detect the appropriate
+  -- `f` dependency of `inner`, but we can't use the `freeVarMap` we get after instantiating `middle` to process `inner`
+  -- let mut letRecsToLift := letRecsToLift
+  -- for i in [:letRecsToLift.size] do
+  --   let valNew ← instantiateMVarsProfiling letRecsToLift[i]!.val
+  --   letRecsToLift := letRecsToLift.modify i fun t => { t with val := valNew }
+  -- let freeVarMap ← mkFreeVarMap sectionVars mainFVarIds recFVarIds letRecsToLift
+  -- let mut result := #[]
+  -- for i in [:letRecsToLift.size] do
+  --   let toLift := letRecsToLift[i]!
+  --   result := result.push (← mkLetRecClosureFor toLift (freeVarMap.find? toLift.fvarId).get!)
+
+  -- We need to instantiate all mvars that aren't `let rec`s
+
   let mut letRecsToLift := letRecsToLift
+  trace[Elab.definition] "Trial instantiation 1: {← letRecsToLift.mapM fun t => return { t with val := (← instantiateMVarsProfiling t.val)}}"
   let mut freeVarMap    ← mkFreeVarMap sectionVars mainFVarIds recFVarIds letRecsToLift
+  trace[Elab.definition] "Trial instantiation 2: {← letRecsToLift.mapM fun t => return { t with val := (← instantiateMVarsProfiling t.val)}}"
+  trace[Elab.definition] "fvarMap: {freeVarMap.toList.map fun (f, fs) => m!"{mkFVar f} → {fs.map mkFVar}"}"
   let mut result := #[]
   for i in [:letRecsToLift.size] do
     if letRecsToLift[i]!.val.hasExprMVar then
       -- This can happen when this particular let-rec has nested let-rec that have been resolved in previous iterations.
-      -- This code relies on the fact that nested let-recs occur before the outer most let-recs at `letRecsToLift`.
+      -- **This code relies on the fact that nested let-recs occur before the outer most let-recs at `letRecsToLift`.** (VIOLATED!)
+      --    --> But restoring this invariant does not resolve the issue :(
       -- Unresolved nested let-recs appear as metavariables before they are resolved. See `assignExprMVar` at `mkLetRecClosureFor`
+      -- **ISSUE** (1/n): the metavariable bound by the the let rec closure only applies `inner` to `n`
+      trace[Elab.definition] "FOUND EXPR MVAR in {letRecsToLift[i]!.val}"
+      trace[Elab.definition] "Raw expr: {repr letRecsToLift[i]!.val}"
       let valNew ← instantiateMVarsProfiling letRecsToLift[i]!.val
+      trace[Elab.definition] "Trial instantiation forIf: {← letRecsToLift.mapM fun t => return { t with val := (← instantiateMVarsProfiling t.val)}}"
+      trace[Elab.definition] "Post-instantiation: {repr valNew}"
       letRecsToLift := letRecsToLift.modify i fun t => { t with val := valNew }
       -- We have to recompute the `freeVarMap` in this case. This overhead should not be an issue in practice.
       freeVarMap ← mkFreeVarMap sectionVars mainFVarIds recFVarIds letRecsToLift
+      trace[Elab.definition] "Updated letRecsToLift: {letRecsToLift.map fun lr => m!"{lr.declName} ↦ {repr lr.val}"}"
+    -- else
+    --   trace[Elab.definition] "No expr mvar in {repr letRecsToLift[i]!.val}"
+  -- TODO: we only get the valid fvar map after all iterations, but if we wait until then, it breaks everything...
+  -- for i in [:letRecsToLift.size] do
     let toLift := letRecsToLift[i]!
+    -- Note: this assigns the mvar for the function
+    trace[Elab.definition] "Trial instantiation for1: {← letRecsToLift.mapM fun t => return { t with val := (← instantiateMVarsProfiling t.val)}}"
+    -- NOTE: within `mkLetRecClosureFor`, we make whatever assignment is necessary to allow instantiation to succeed!
     result := result.push (← mkLetRecClosureFor toLift (freeVarMap.find? toLift.fvarId).get!)
+    trace[Elab.definition] "Trial instantiation for2: {← letRecsToLift.mapM fun t => return { t with val := (← instantiateMVarsProfiling t.val)}}"
+
+
+  trace[Elab.definition] "fvarMap(recomputed): {freeVarMap.toList.map fun (f, fs) => m!"{mkFVar f} → {fs.map mkFVar}"}"
   return result.toList
 
 /-- Mapping from FVarId of mutually recursive functions being defined to "closure" expression. -/
@@ -939,7 +1029,9 @@ def main (sectionVars : Array Expr) (mainHeaders : Array DefViewElabHeader) (mai
   -- Store in recFVarIds the fvarId of every function being defined by the mutual block.
   let letRecsToLift := letRecsToLift.toArray
   let mainFVarIds := mainFVars.map Expr.fvarId!
+  trace[Elab.definition] "mainFVarIds: {mainFVarIds.map mkFVar}"
   let recFVarIds  := (letRecsToLift.map fun toLift => toLift.fvarId) ++ mainFVarIds
+  trace[Elab.definition] "recFVarIds: {recFVarIds.map mkFVar}"
   resetZetaDeltaFVarIds
   withTrackingZetaDelta do
     -- By checking `toLift.type` and `toLift.val` we populate `zetaFVarIds`. See comments at `src/Lean/Meta/Closure.lean`.
@@ -947,7 +1039,9 @@ def main (sectionVars : Array Expr) (mainHeaders : Array DefViewElabHeader) (mai
       Meta.check toLift.type
       Meta.check toLift.val
       return { toLift with val := (← instantiateMVarsProfiling toLift.val), type := (← instantiateMVarsProfiling toLift.type) }
+    trace[Elab.definition] "letRecsToLift(populated):\n{letRecsToLift.map fun lr => m!"{lr.declName} : {lr.type} := {lr.val}\n"}"
     let letRecClosures ← mkLetRecClosures sectionVars mainFVarIds recFVarIds letRecsToLift
+    trace[Elab.definition] "letRecClosures:\n{letRecClosures.map fun lrc => m!"{lrc.ref} => {lrc.localDecls.map (·.userName)} in {repr lrc.toLift.val}\n"}"
     -- mkLetRecClosures assign metavariables that were placeholders for the lifted declarations.
     let mainVals    ← mainVals.mapM (instantiateMVarsProfiling ·)
     let mainHeaders ← mainHeaders.mapM instantiateMVarsAtHeader
@@ -1030,8 +1124,13 @@ where
           headers.mapM fun header => withRef header.declId <| mkLabeledSorry header.type (synthetic := true) (unique := true)
       let headers ← headers.mapM instantiateMVarsAtHeader
       let letRecsToLift ← getLetRecsToLift
+      trace[Elab.definition] "letRecsToLift: {letRecsToLift.map fun lr => m!"{lr.declName} ≔ {repr lr.val}"}"
+      let old := letRecsToLift
+      let letRecsToLift := letRecsToLift.toArray.insertionSort (fun lr lr' => lr'.declName.isPrefixOf lr.declName) |>.toList
+      if old.map (·.declName) != letRecsToLift.map (·.declName) then trace[Elab.definition] "order did not change"
       let letRecsToLift ← letRecsToLift.mapM instantiateMVarsAtLetRecToLift
       checkLetRecsToLiftTypes funFVars letRecsToLift
+      -- trace[Elab.definition] "checked fvars{indentD ∘ toMessageData <| funFVars.map repr}\nagainst\n{letRecsToLift.map fun lr => m!"{lr.declName} = {lr.val}"}"
       (if headers.all (·.kind.isTheorem) && !deprecated.oldSectionVars.get (← getOptions) then withHeaderSecVars vars sc headers else withUsed vars headers values letRecsToLift) fun vars => do
         let preDefs ← MutualClosure.main vars headers funFVars values letRecsToLift
         checkAllDeclNamesDistinct preDefs

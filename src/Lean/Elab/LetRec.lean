@@ -122,17 +122,22 @@ private def registerLetRecsToLift (views : Array LetRecDeclView) (fvars : Array 
       mvarId         := view.mvar.mvarId!
       termination    := termination
       : LetRecToLift }
+  trace[Elab.letrec] "registering letrecs to lift: {toLift.toList.map (·.declName)}"
   modify fun s => { s with letRecsToLift := toLift.toList ++ s.letRecsToLift }
 
 @[builtin_term_elab «letrec»] def elabLetRec : TermElab := fun stx expectedType? => do
+  trace[Elab.letrec] "elaborating letrec: {stx}"
   let view ← mkLetRecDeclView stx
   withAuxLocalDecls view.decls fun fvars => do
     for decl in view.decls, fvar in fvars do
       addLocalVarInfo decl.ref fvar
     let values ← elabLetRecDeclValues view
+    trace[Elab.letrec] "elaborated letrec decl values: {values.map repr}"
     let body ← elabTermEnsuringType view.body expectedType?
+    trace[Elab.letrec] "elaborated letrec body: {repr body}"
     registerLetRecsToLift view.decls fvars values
     let mvars := view.decls.map (·.mvar)
+    trace[Elab.letrec] "result of letrec: {mkAppN (← mkLambdaFVars fvars body) mvars}"
     return mkAppN (← mkLambdaFVars fvars body) mvars
 
 end Lean.Elab.Term
