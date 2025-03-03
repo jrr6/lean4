@@ -197,20 +197,29 @@ def findElaboratedInlineInfo (lctx? : Option LocalContext) (ctx : ContextInfo) :
       dbg_trace s!"processing an inline binding with name {id} and custom info {ci.value.get? Lean.Elab.Term.InlineBinderInfo |>.map (·.fvarId.name)}"
       let some info := ci.value.get? Lean.Elab.Term.InlineBinderInfo | return []
       -- TODO: make this more robust (we don't know what the info structure looks like)
-      let .node (.ofTermInfo ti) _ := cs[0]! | return []
       -- FIXME: this does not work because cs is empty
+      -- let .node (.ofTermInfo ti) _ := cs[0]! | return []
+
+      let some lctx := lctx? | IO.println "can't find elaborated inline without context"; pure []
+      IO.println <| lctx.decls.toArray.reduceOption.map fun d => s!"{d.userName} : {d.type}"
+      let some decl := lctx.find? info.fvarId | IO.println "couldn't find inline decl"; pure []
+      let type := decl.type
+
       -- If we wanted the body infos to be in cs, we should use `withInfoContext'` instead of just
       -- pushing the info leaf (this is how `BodyInfo` works)
       -- Otherwise, we'd need to traverse horizontally (or maybe just up one level?) in the tree to
       -- find a term in whose context we can resolve the fvarId
-      ti.runMetaM ctx do dbg_trace s!"{← inferType (.fvar info.fvarId)}"
+      -- ti.runMetaM ctx do dbg_trace s!"{← inferType (.fvar info.fvarId)}"
+
       -- Issue: we can't just look up the type of `id` in the lctx because it may have been shadowed
-      let some bodyInfo := ci.value.get? Lean.Elab.Term.BodyInfo | return []
+      -- let some bodyInfo := ci.value.get? Lean.Elab.Term.BodyInfo | return []
+
       -- Note: body info gives the value and binder type of the *overall* decl, *not* the inline binding
-      let some expr := bodyInfo.value? | return []
+      -- let some expr := bodyInfo.value? | return []
+
       -- let some type := bodyInfo.binderType? | return []
       -- let typeMsg ← if let some lctx := lctx? then ctx.runMetaM lctx do ppExpr type else pure f!"{type}"
-      dbg_trace "Body: {expr}"
+      dbg_trace "Type: {type}"
       return []
     | _ => return []
   | _ => return []

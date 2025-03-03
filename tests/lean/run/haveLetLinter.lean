@@ -1,4 +1,4 @@
-
+import Lean
 set_option linter.haveLet 2
 
 -- set_option trace.Elab.let.decl true
@@ -30,7 +30,7 @@ set_option pp.macroStack true
 
   -- haveI x := 3
 def k (q : Nat) : Unit :=
-  letI x : Bool := true
+  letI x : Nat := Nat.zero
   Unit.unit
   -- let (a, b) := (4, 5)
   -- [a + n]

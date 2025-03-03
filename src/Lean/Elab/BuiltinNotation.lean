@@ -558,13 +558,38 @@ deriving TypeName
         let ty ← elabType ty
         let val ← elabTermEnsuringType val ty
         pure (← mkForallFVars bs ty, ← mkLambdaFVars bs val)
-      withLocalDeclD x.getId ty fun x => do
-        pushInfoLeaf <| .ofCustomInfo {
-          stx,
-          value := .mk { fvarId := x.fvarId! : InlineBinderInfo }
-        }
-        return (← (← elabTerm body expectedType).abstractM #[x]).instantiate #[val]
+      withLocalDeclD x.getId ty fun e => do
+        withInfoContext' x
+          (mkInfo := fun _ => pure <| .inl <| .ofCustomInfo { stx, value := .mk { fvarId := e.fvarId! : InlineBinderInfo }})
+          (mkInfoOnError := pure <| .ofCustomInfo { stx, value := .mk { fvarId := e.fvarId! : InlineBinderInfo }})
+          do return (← (← elabTerm body expectedType).abstractM #[e]).instantiate #[val]
+        -- pushInfoLeaf <| .ofCustomInfo {
+        --   stx,
+        --   value := .mk { fvarId := x.fvarId! : InlineBinderInfo }
+        -- }
   | _ => throwUnsupportedSyntax
+
+/-
+@[builtin_term_elab Lean.Parser.Term.haveI] def elabHaveI : TermElab := fun stx expectedType? => do
+  match stx with
+  | `(haveI $x:ident $bs* : $ty := $val; $body) =>
+    withExpectedType expectedType? fun expectedType => do
+      let (ty, val) ← elabBinders bs fun bs => do
+        let ty ← elabType ty
+        let val ← elabTermEnsuringType val ty
+        pure (← mkForallFVars bs ty, ← mkLambdaFVars bs val)
+      withLocalDeclD x.getId ty fun x => do
+        let fvarExpr := x
+        withInfoContext' x
+          (mkInfo := fun _ => pure <| .inl <| .ofCustomInfo { stx, value := .mk { fvarId := x.fvarId! : InlineBinderInfo }})
+          (mkInfoOnError := pure <| .ofCustomInfo { stx, value := .mk { fvarId := x.fvarId! : InlineBinderInfo }})
+          return (← (← elabTerm body expectedType).abstractM #[x]).instantiate #[val]
+        -- pushInfoLeaf <| .ofCustomInfo {
+        --   stx,
+        --   value := .mk { fvarId := x.fvarId! : InlineBinderInfo }
+        -- }
+  | _ => throwUnsupportedSyntax
+-/
 
 open Parser Term in
 @[term_parser] def «haveI'» := leading_parser
