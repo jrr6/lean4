@@ -311,6 +311,24 @@ structure DelayedMetavarAssignment where
   fvars         : Array Expr
   mvarIdPending : MVarId
 
+inductive MVarProvenanceKind
+  | implicitArg (lctx : LocalContext) (ctx : Expr) (name : Name)
+  | hole (name? : Option Name)
+  | declType (declKind : String) (declName : Name)  -- Ex: declKind = "let rec", declName = `aux
+  | defaultValue (valueKind : String) (type? : Option Expr)
+  | custom (msgData : String)  -- TODO: MessageData
+
+structure MVarProvenance where
+  ref : Syntax
+  kind : MVarProvenanceKind
+
+structure LMVarProvenance where
+  lctx      : LocalContext
+  expr      : Expr
+  ref       : Syntax
+  -- TODO: MessageData
+  msgData?  : Option String := none
+
 /-- The metavariable context is a set of metavariable declarations and their assignments.
 
 For more information on specifics see the comment in the file that `MetavarContext` is defined in.
@@ -334,6 +352,10 @@ structure MetavarContext where
   /-- Assignment table for delayed abstraction metavariables.
   For more information about delayed abstraction, see the docstring for `DelayedMetavarAssignment`. -/
   dAssignment    : PersistentHashMap MVarId DelayedMetavarAssignment := {}
+  /-- Stores information about the provenance of metavariables. Used for info hovers. -/
+  mvarProvenances : PersistentHashMap MVarId MVarProvenance := {}
+  /-- Stores information about the provenance of level metavariables. Used for info hovers. -/
+  levelMVarProvenances : PersistentHashMap LMVarId LMVarProvenance := {}
 
 instance : Inhabited MetavarContext := ⟨{}⟩
 
@@ -876,6 +898,20 @@ def incDepth (mctx : MetavarContext) (allowLevelAssignments := false) : MetavarC
   let levelAssignDepth :=
     if allowLevelAssignments then mctx.levelAssignDepth else depth
   { mctx with depth, levelAssignDepth }
+
+def setMVarProvenance (mctx : MetavarContext) (mvarId : MVarId) (info : MVarProvenance) :
+    MetavarContext :=
+  { mctx with mvarProvenances := mctx.mvarProvenances.insert mvarId info }
+
+def setLevelMVarProvenance (mctx : MetavarContext) (lmvarId : LMVarId) (info : LMVarProvenance) :
+    MetavarContext :=
+  { mctx with levelMVarProvenances := mctx.levelMVarProvenances.insert lmvarId info }
+
+def getMVarProvenance? (mctx : MetavarContext) (mvarId : MVarId) : Option MVarProvenance :=
+  mctx.mvarProvenances.find? mvarId
+
+def getLevelMVarProvenance? (mctx : MetavarContext) (lmvarId : LMVarId) : Option LMVarProvenance :=
+  mctx.levelMVarProvenances.find? lmvarId
 
 namespace MkBinding
 

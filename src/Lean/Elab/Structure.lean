@@ -693,8 +693,10 @@ private def registerFailedToInferFieldType (fieldName : Name) (e : Expr) (ref : 
   Term.registerCustomErrorIfMVar (← instantiateMVars e) ref m!"failed to infer type of field '{.ofConstName fieldName}'"
 
 private def registerFailedToInferDefaultValue (fieldName : Name) (e : Expr) (ref : Syntax) : TermElabM Unit := do
-  Term.registerCustomErrorIfMVar (← instantiateMVars e) ref m!"failed to infer default value for field '{.ofConstName fieldName}'"
-  Term.registerLevelMVarErrorExprInfo e ref m!"failed to infer universe levels in default value for field '{.ofConstName fieldName}'"
+  -- TODO: MessageData (should use `.ofConstName` in interpolation)
+  registerCustomProvenanceIfMVar (← instantiateMVars e) ref s!"failed to infer default value for field '{fieldName}'"
+  -- TODO: MessageData
+  registerLevelMVarExprProvenance e ref s!"failed to infer universe levels in default value for field '{.ofConstName fieldName}'"
 
 private def elabFieldTypeValue (view : StructFieldView) : TermElabM (Option Expr × Option Expr) :=
   Term.withAutoBoundImplicit <| Term.withAutoBoundImplicitForbiddenPred (fun n => view.name == n) <| Term.elabBinders view.binders.getArgs fun params => do
