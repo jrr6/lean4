@@ -149,10 +149,6 @@ structure State where
   levelNames        : List Name       := []
   syntheticMVars    : MVarIdMap SyntheticMVarDecl := {}
   pendingMVars      : List MVarId := {}
-  /-- List of errors associated to a metavariable that are shown to the user if the metavariable could not be fully instantiated -/
-  mvarErrorInfos    : List MVarErrorInfo := []
-  /-- List of data to be able to localize universe level metavariable errors to particular expressions. -/
-  levelMVarErrorInfos   : List LevelMVarErrorInfo := []
   /--
     `mvarArgNames` stores the argument names associated to metavariables.
     These are used in combination with `mvarErrorInfos` for throwing errors about metavariables that could not be fully instantiated.
@@ -743,23 +739,6 @@ def registerSyntheticMVar (stx : Syntax) (mvarId : MVarId) (kind : SyntheticMVar
 def registerSyntheticMVarWithCurrRef (mvarId : MVarId) (kind : SyntheticMVarKind) : TermElabM Unit := do
   registerSyntheticMVar (← getRef) mvarId kind
 
-def registerMVarErrorInfo (mvarErrorInfo : MVarErrorInfo) : TermElabM Unit :=
-  modify fun s => { s with mvarErrorInfos := mvarErrorInfo :: s.mvarErrorInfos }
-
-def registerMVarErrorHoleInfo (mvarId : MVarId) (ref : Syntax) : TermElabM Unit :=
-  registerMVarErrorInfo { mvarId, ref, kind := .hole }
-
-def registerMVarErrorImplicitArgInfo (mvarId : MVarId) (ref : Syntax) (app : Expr) : TermElabM Unit := do
-  registerMVarErrorInfo { mvarId, ref, kind := .implicitArg (← getLCtx) app }
-
-def registerMVarErrorCustomInfo (mvarId : MVarId) (ref : Syntax) (msgData : MessageData) : TermElabM Unit := do
-  registerMVarErrorInfo { mvarId, ref, kind := .custom msgData }
-
-def registerCustomErrorIfMVar (e : Expr) (ref : Syntax) (msgData : MessageData) : TermElabM Unit :=
-  match e.getAppFn with
-  | Expr.mvar mvarId => registerMVarErrorCustomInfo mvarId ref msgData
-  | _ => pure ()
-
 def registerMVarArgName (mvarId : MVarId) (argName : Name) : TermElabM Unit :=
   modify fun s => { s with mvarArgNames := s.mvarArgNames.insert mvarId argName }
 
@@ -774,24 +753,24 @@ def throwMVarError (m : MessageData) : TermElabM α := do
   else
     throwError m
 
-def MVarErrorInfo.logError (mvarErrorInfo : MVarErrorInfo) (extraMsg? : Option MessageData) : TermElabM Unit := do
-  match mvarErrorInfo.kind with
-  | MVarErrorKind.implicitArg lctx app => withLCtx lctx {} do
+def _root_.Lean.MVarProvenance.logError (mvarProvenance : MVarProvenance) (mvarId : MVarId) (extraMsg? : Option MessageData) : TermElabM Unit := do
+  match mvarProvenance.kind with
+  | .implicitArg lctx app nm => withLCtx lctx {} do
     let app ← instantiateMVars app
-    let msg ← addArgName "don't know how to synthesize implicit argument"
-    let msg := msg ++ m!"{indentExpr app.setAppPPExplicitForExposingMVars}" ++ Format.line ++ "context:" ++ Format.line ++ MessageData.ofGoal mvarErrorInfo.mvarId
-    logErrorAt mvarErrorInfo.ref (appendExtra msg)
-  | MVarErrorKind.hole => do
-    let msg ← addArgName "don't know how to synthesize placeholder" " for argument"
-    let msg := msg ++ Format.line ++ "context:" ++ Format.line ++ MessageData.ofGoal mvarErrorInfo.mvarId
-    logErrorAt mvarErrorInfo.ref (MessageData.tagged `Elab.synthPlaceholder <| appendExtra msg)
-  | MVarErrorKind.custom msg =>
-    logErrorAt mvarErrorInfo.ref (appendExtra msg)
+    let msg ← addArgName nm "don't know how to synthesize implicit argument"
+    let msg := msg ++ m!"{indentExpr app.setAppPPExplicitForExposingMVars}" ++ Format.line ++ "context:" ++ Format.line ++ MessageData.ofGoal mvarId
+    logErrorAt mvarProvenance.ref (appendExtra msg)
+  | .hole nm? => do
+    let msg ← addArgName nm? "don't know how to synthesize placeholder" " for argument"
+    let msg := msg ++ Format.line ++ "context:" ++ Format.line ++ MessageData.ofGoal mvarId
+    logErrorAt mvarProvenance.ref (MessageData.tagged `Elab.synthPlaceholder <| appendExtra msg)
+  | .custom msg =>
+    logErrorAt mvarProvenance.ref (appendExtra msg)
 where
   /-- Append the argument name (if available) to the message.
       Remark: if the argument name contains macro scopes we do not append it. -/
-  addArgName (msg : MessageData) (extra : String := "") : TermElabM MessageData := do
-    match (← get).mvarArgNames.find? mvarErrorInfo.mvarId with
+  addArgName (name? : Option Name) (msg : MessageData) (extra : String := "") : TermElabM MessageData := do
+    match name? with
     | none => return msg
     | some argName => return if argName.hasMacroScopes then msg else msg ++ extra ++ m!" '{argName}'"
 
@@ -814,30 +793,22 @@ def logUnassignedUsingErrorInfos (pendingMVarIds : Array MVarId) (extraMsg? : Op
     let hasOtherErrors ← MonadLog.hasErrors
     let mut hasNewErrors := false
     let mut alreadyVisited : MVarIdSet := {}
-    let mut errors : Array MVarErrorInfo := #[]
-    for mvarErrorInfo in (← get).mvarErrorInfos do
-      let mvarId := mvarErrorInfo.mvarId
+    for mvarId in pendingMVarIds do
+      -- let mvarId := mvarErrorInfo.mvarId
       unless alreadyVisited.contains mvarId do
         alreadyVisited := alreadyVisited.insert mvarId
-        /- The metavariable `mvarErrorInfo.mvarId` may have been assigned or
-           delayed assigned to another metavariable that is unassigned. -/
-        let mvarDeps ← getMVars (mkMVar mvarId)
-        if mvarDeps.any pendingMVarIds.contains then do
-          unless hasOtherErrors do
-            errors := errors.push mvarErrorInfo
-          hasNewErrors := true
+        if let some mvarProvenance ← getMVarProvenance? mvarId then
+          /- The metavariable `mvarErrorInfo.mvarId` may have been assigned or
+            delayed assigned to another metavariable that is unassigned. -/
+          let mvarDeps ← getMVars (mkMVar mvarId)
+          if mvarDeps.any pendingMVarIds.contains then do
+            unless hasOtherErrors do
+              mvarId.withContext do
+                mvarProvenance.logError mvarId extraMsg?
+            hasNewErrors := true
     -- To sort the errors by position use
     -- let sortedErrors := errors.qsort fun e₁ e₂ => e₁.ref.getPos?.getD 0 < e₂.ref.getPos?.getD 0
-    for error in errors do
-      error.mvarId.withContext do
-        error.logError extraMsg?
     return hasNewErrors
-
-def registerLevelMVarErrorInfo (levelMVarErrorInfo : LevelMVarErrorInfo) : TermElabM Unit :=
-  modify fun s => { s with levelMVarErrorInfos := levelMVarErrorInfo :: s.levelMVarErrorInfos }
-
-def registerLevelMVarErrorExprInfo (expr : Expr) (ref : Syntax) (msgData? : Option MessageData := none) : TermElabM Unit := do
-  registerLevelMVarErrorInfo { lctx := (← getLCtx), expr, ref, msgData? }
 
 def exposeLevelMVars (e : Expr) : MetaM Expr :=
   Core.transform e
@@ -849,12 +820,13 @@ def exposeLevelMVars (e : Expr) : MetaM Expr :=
       | .letE _ t _ _ _ => return .done <| if t.hasLevelMVar then e.setOption `pp.letVarTypes true else e
       | _               => return .done e)
 
-def LevelMVarErrorInfo.logError (levelMVarErrorInfo : LevelMVarErrorInfo) : TermElabM Unit :=
-  Meta.withLCtx levelMVarErrorInfo.lctx {} do
-    let e' ← exposeLevelMVars (← instantiateMVars levelMVarErrorInfo.expr)
-    let msg := levelMVarErrorInfo.msgData?.getD m!"don't know how to synthesize universe level metavariables"
+def _root_.Lean.LMVarProvenance.logError (provenance : LMVarProvenance) : TermElabM Unit :=
+  Meta.withLCtx provenance.lctx {} do
+    let e' ← exposeLevelMVars (← instantiateMVars provenance.expr)
+    -- TODO: MessageData (also, this is a bad error message)
+    let msg := provenance.msgData?.getD "don't know how to synthesize universe level metavariables"
     let msg := m!"{msg}{indentExpr e'}"
-    logErrorAt levelMVarErrorInfo.ref msg
+    logErrorAt provenance.ref msg
 
 /--
 Try to log errors for unassigned level metavariables `pendingLevelMVarIds`.
@@ -869,16 +841,14 @@ def logUnassignedLevelMVarsUsingErrorInfos (pendingLevelMVarIds : Array LMVarId)
   else
     let hasOtherErrors ← MonadLog.hasErrors
     let mut hasNewErrors := false
-    let mut errors : Array LevelMVarErrorInfo := #[]
-    for levelMVarErrorInfo in (← get).levelMVarErrorInfos do
-      let e ← instantiateMVars levelMVarErrorInfo.expr
-      let lmvars := (collectLevelMVars {} e).result
-      if lmvars.any pendingLevelMVarIds.contains then do
-        unless hasOtherErrors do
-          errors := errors.push levelMVarErrorInfo
-        hasNewErrors := true
-    for error in errors do
-      error.logError
+    for lmvarId in pendingLevelMVarIds do
+      if let some provenance ← getLevelMVarProvenance? lmvarId then
+        let e ← instantiateMVars provenance.expr
+        let lmvars := (collectLevelMVars {} e).result
+        if lmvars.any pendingLevelMVarIds.contains then do
+          unless hasOtherErrors do
+            provenance.logError
+          hasNewErrors := true
     return hasNewErrors
 
 /-- Ensure metavariables registered using `registerMVarErrorInfos` (and used in the given declaration) have been assigned. -/

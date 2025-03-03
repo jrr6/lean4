@@ -857,6 +857,38 @@ def mkConstWithFreshMVarLevels (declName : Name) : MetaM Expr := do
   let info ← getConstInfo declName
   return mkConst declName (← mkFreshLevelMVarsFor info)
 
+def registerMVarProvenance (mvarId : MVarId) (mvarErrorInfo : MVarProvenance) : MetaM Unit :=
+  modify fun s => { s with mctx := s.mctx.setMVarProvenance mvarId mvarErrorInfo }
+
+def registerMVarHoleProvenance (mvarId : MVarId) (ref : Syntax) (name? : Option Name) : MetaM Unit :=
+  registerMVarProvenance mvarId { ref, kind := .hole name? }
+
+def registerMVarImplicitArgProvenance (mvarId : MVarId) (ref : Syntax) (app : Expr) (name : Name) : MetaM Unit := do
+  registerMVarProvenance mvarId { ref, kind := .implicitArg (← getLCtx) app name }
+
+-- TODO: MessageData
+def registerMVarCustomProvenance (mvarId : MVarId) (ref : Syntax) (msgData : String) : MetaM Unit := do
+  registerMVarProvenance mvarId { ref, kind := .custom msgData }
+
+-- TODO: MessageData
+def registerCustomProvenanceIfMVar (e : Expr) (ref : Syntax) (msgData : String) : MetaM Unit :=
+  match e.getAppFn with
+  | Expr.mvar mvarId => registerMVarCustomProvenance mvarId ref msgData
+  | _ => pure ()
+
+def registerLevelMVarProvenance (lmvarId : LMVarId) (levelMVarProvenance : LMVarProvenance) : MetaM Unit :=
+  modify fun s => { s with mctx := s.mctx.setLevelMVarProvenance lmvarId levelMVarProvenance }
+
+-- TODO: MessageData
+def registerLevelMVarExprProvenance (lmvarId : LMVarId) (expr : Expr) (ref : Syntax) (msgData? : Option String := none) : MetaM Unit := do
+  registerLevelMVarProvenance lmvarId { lctx := (← getLCtx), expr, ref, msgData? }
+
+def getMVarProvenance? (mvarId : MVarId) : MetaM (Option MVarProvenance) :=
+  return (← get).mctx.getMVarProvenance? mvarId
+
+def getLevelMVarProvenance? (lmvarId : LMVarId) : MetaM (Option LMVarProvenance) :=
+  return (← get).mctx.getLevelMVarProvenance? lmvarId
+
 /-- Return current transparency setting/mode. -/
 def getTransparency : MetaM TransparencyMode :=
   return (← getConfig).transparency
