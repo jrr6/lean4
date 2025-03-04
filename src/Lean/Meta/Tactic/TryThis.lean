@@ -385,7 +385,7 @@ The parameters are:
   suggestion does not have a custom `toCodeActionTitle?`. If not provided, `"Try this: "` is used.
 -/
 def addSuggestion (ref : Syntax) (s : Suggestion) (origSpan? : Option Syntax := none)
-    (header : String := "Try this: ") (codeActionPrefix? : Option String := none) : MetaM Unit := do
+    (header : String := "Try this: ") (codeActionPrefix? : Option String := none) : CoreM Unit := do
   logInfoAt ref m!"{header}{s}"
   addSuggestionCore ref #[s] header (isInline := true) origSpan?
     (codeActionPrefix? := codeActionPrefix?)

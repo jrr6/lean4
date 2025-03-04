@@ -700,7 +700,7 @@ def elabLetDeclAux (id : Syntax) (binders : Array Syntax) (typeStx : Syntax) (va
       let body ← elabTermEnsuringType body expectedType?
       let body ← instantiateMVars body
       let resolvedType ← instantiateMVars type
-      -- logInfo m!"Within body elab, got {resolvedType}, which is {if (← inferType resolvedType).isProp then "Prop-valued" else "Type-valued"}."
+      logInfo m!"Within body elab, got {resolvedType}, which is {if (← inferType resolvedType).isProp then "Prop-valued" else "Type-valued"}."
       mkLetFVars #[x] body (usedLetOnly := usedLetOnly)
   else
     withLocalDecl id.getId (kind := kind) .default type fun x => do
@@ -708,7 +708,7 @@ def elabLetDeclAux (id : Syntax) (binders : Array Syntax) (typeStx : Syntax) (va
       let body ← elabTermEnsuringType body expectedType?
       let body ← instantiateMVars body
       let resolvedType ← instantiateMVars type
-      -- logInfo m!"Within body elab, got {resolvedType}, which is {if (← inferType resolvedType).isProp then "Prop-valued" else "Type-valued"}."
+      logInfo m!"Within body elab, got {resolvedType}, which is {if (← inferType resolvedType).isProp then "Prop-valued" else "Type-valued"}."
       mkLetFun x val body
   if elabBodyFirst then
     forallBoundedTelescope type binders.size fun xs type => do
@@ -718,14 +718,17 @@ def elabLetDeclAux (id : Syntax) (binders : Array Syntax) (typeStx : Syntax) (va
       let valResult ← elabTermEnsuringType valStx type
       let valResult ← mkLambdaFVars xs valResult (usedLetOnly := false)
       let resolvedType ← instantiateMVars type
-      -- logInfo m!"Within body elab, got {resolvedType}, which is {if (← inferType resolvedType).isProp then "Prop-valued" else "Type-valued"}."
+      logInfo m!"Within body elab, got {resolvedType}, which is {if (← inferType resolvedType).isProp then "Prop-valued" else "Type-valued"}."
       unless (← isDefEq val valResult) do
         throwError "unexpected error when elaborating 'let'"
-  -- TODO: here we *may* be able to infer the type of the decl, although it's not guaranteed: consider
-  /-
+  /- TODO: here we *may* be able to infer the type of the decl, although it's not guaranteed: consider
   theorem foo : 1 = 1 :=
     have h := rfl
     h
+  or even
+  def k (q : Nat) : Unit :=
+    let x := 3  -- binder has type ?m.10
+    Unit.unit
   -/
   -- There are also messy situations like these (I guess this shouldn't register as Prop b/c it might not be):
   /-
@@ -734,7 +737,7 @@ def elabLetDeclAux (id : Syntax) (binders : Array Syntax) (typeStx : Syntax) (va
     y
   -/
   let resolvedType ← instantiateMVars type
-  -- logInfo m!"Binders have type {resolvedType}, which is {if (← inferType resolvedType).isProp then "Prop-valued" else "Type-valued"}."
+  logInfo m!"Binders have type {resolvedType}, which is {if (← inferType resolvedType).isProp then "Prop-valued" else "Type-valued"}."
   pure result
 
 structure LetIdDeclView where

@@ -569,6 +569,7 @@ deriving TypeName
         -- }
   | _ => throwUnsupportedSyntax
 
+-- TODO: below seems to contain hygienicity issue -- why is `x` suddenly a `ReaderT ...`?
 /-
 @[builtin_term_elab Lean.Parser.Term.haveI] def elabHaveI : TermElab := fun stx expectedType? => do
   match stx with
@@ -633,12 +634,11 @@ def haveLetErrorMessageFor (usedBinder correctBinder : String) (needProp : Bool)
         let ty ← elabType ty
         let val ← elabTermEnsuringType val ty
         pure (← mkForallFVars bs ty, ← mkLambdaFVars bs val)
-      withLetDecl x.getId ty val fun x => do
-        pushInfoLeaf <| .ofCustomInfo {
-          stx,
-          value := .mk { fvarId := x.fvarId! : InlineBinderInfo }
-        }
-        return (← (← elabTerm body expectedType).abstractM #[x]).instantiate #[val]
+      withLetDecl x.getId ty val fun e => do
+        withInfoContext' x
+          (mkInfo := fun _ => pure <| .inl <| .ofCustomInfo { stx, value := .mk { fvarId := e.fvarId! : InlineBinderInfo }})
+          (mkInfoOnError := pure <| .ofCustomInfo { stx, value := .mk { fvarId := e.fvarId! : InlineBinderInfo }})
+          do return (← (← elabTerm body expectedType).abstractM #[e]).instantiate #[val]
   | _ => throwUnsupportedSyntax
 
 @[term_elab Lean.Parser.Term.letI] def elabLetI' : TermElab := fun stx expectedType? => do

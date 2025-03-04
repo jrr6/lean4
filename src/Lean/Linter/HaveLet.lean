@@ -2,6 +2,7 @@
 TODO: copyright header
 Tactic-mode `have` linter adapted from Mathlib
 -/
+import Lean.Meta.Tactic.TryThis
 import Lean.Elab.BuiltinNotation
 import Lean.Elab.Command
 import Lean.Server.InfoUtils
@@ -188,22 +189,27 @@ def findElaboratedLetInfo (ctx : ContextInfo) : InfoTree → IO (List BinderInfo
     return []
   | _ => return []
 
-def findElaboratedInlineInfo (lctx? : Option LocalContext) (ctx : ContextInfo) : InfoTree → IO (List BinderInfo)
+partial def findElaboratedInlineInfo (lctx? : Option LocalContext) (ctx : ContextInfo) : InfoTree → IO (List BinderInfo)
   -- TODO: may want to recursively search? Not sure how best to do this...
   | .node (.ofCustomInfo ci) cs => do
     match ci.stx with
-    | `(letI $id:ident $_* : $_ := $_; $_) =>
+    | `(letI $id:ident $_* $[: $_]? := $_; $_)
+    | `(haveI $id:ident $_* $[: $_]? := $_; $_) =>
       -- TODO: we need to export the binder type or something...there's no way to recover it from an inline `let`/`have`
       dbg_trace s!"processing an inline binding with name {id} and custom info {ci.value.get? Lean.Elab.Term.InlineBinderInfo |>.map (·.fvarId.name)}"
-      let some info := ci.value.get? Lean.Elab.Term.InlineBinderInfo | return []
+      let some info := ci.value.get? Lean.Elab.Term.InlineBinderInfo | dbg_trace "bad custom info; is it body info? {ci.value.get? Lean.Elab.Term.BodyInfo |>.isSome}" return []
       -- TODO: make this more robust (we don't know what the info structure looks like)
       -- FIXME: this does not work because cs is empty
       -- let .node (.ofTermInfo ti) _ := cs[0]! | return []
 
       let some lctx := lctx? | IO.println "can't find elaborated inline without context"; pure []
       IO.println <| lctx.decls.toArray.reduceOption.map fun d => s!"{d.userName} : {d.type}"
-      let some decl := lctx.find? info.fvarId | IO.println "couldn't find inline decl"; pure []
-      let type := decl.type
+      let ti := cs[0]!.termInfo!  -- TODO: needs to be way more robust
+      let some decl := ti.lctx.find? info.fvarId | IO.println "couldn't find inline decl"; pure []
+      let (type, isProp) ← ctx.runMetaM ti.lctx do
+        let type ← instantiateMVars decl.type
+        let isProp := (← inferType type).isProp
+        return (type, isProp)
 
       -- If we wanted the body infos to be in cs, we should use `withInfoContext'` instead of just
       -- pushing the info leaf (this is how `BodyInfo` works)
@@ -220,9 +226,19 @@ def findElaboratedInlineInfo (lctx? : Option LocalContext) (ctx : ContextInfo) :
       -- let some type := bodyInfo.binderType? | return []
       -- let typeMsg ← if let some lctx := lctx? then ctx.runMetaM lctx do ppExpr type else pure f!"{type}"
       dbg_trace "Type: {type}"
+      return [{ name := id.getId, type, isProp }]
+    | _ =>
+      dbg_trace "bad letI syntax for findElaboratedInlineInfo"
       return []
-    | _ => return []
-  | _ => return []
+  | .node (.ofMacroExpansionInfo mi) cs => do
+    dbg_trace "searching macro expansion in findElaboratedInlineInfo: {mi.stx}"
+    let infos? ← cs.findSomeM? fun c => do
+      let res ← findElaboratedInlineInfo mi.lctx ctx c
+      match res with
+      | [] => pure none
+      | _ => pure (some res)
+    return infos?.getD []
+  | i => dbg_trace "unsupported info kind {i.nodeKind!} for findElaboratedInlineInfo"; return []
 
 -- TODO: don't forget `haveI`/`letI`
 def findElaboratedHaveInfo (ctx : ContextInfo) : InfoTree → IO (List BinderInfo)
@@ -282,6 +298,8 @@ partial def extractInfoTrees (t : InfoTree) (lctx? : Option LocalContext := none
   match t with
   | .context ctx t => extractInfoTrees t lctx? (ctx.mergeIntoOuter? ctx?)
   | t@(.node info ts) => do
+    -- TODO: there are some infos with original syntax we still want to skip to avoid redundant processing, I think
+    -- (e.g., BodyInfo)
     dbg_trace "processing {t.nodeKind!} {info.stx}"
     let kwStx := info.stx[0]?.getD info.stx
     let bindingsHere : Array DeclInfo ← do
@@ -301,6 +319,7 @@ partial def extractInfoTrees (t : InfoTree) (lctx? : Option LocalContext := none
                  stx := kwStx
                  kind := .haveIDecl }]
       | .node _ ``Lean.Parser.Term.letI _ =>
+        dbg_trace "letI"
         pure #[{ binders := (← findElaboratedInlineInfo lctx? ctx t)
                  stx := kwStx
                  kind := .letIDecl }]
@@ -439,6 +458,7 @@ def haveLetLinter : Linter where run := withSetOptionIn fun _stx => do
             warning := warning ++ m!"\n{nameStr} has type{indentD type}\nwhich is not {expectedSort}."
             warning := warning ++ m!"\nYou can disable this linter using `set_option linter.haveLet false`."
             logWarningAt stx <| .tagged linter.haveLet.name warning
+
       -- for (s, fmt) in ← nonPropHaves t do
       --   -- Since the linter option is not in `Bool`, the standard `Linter.logLint` does not work.
       --   -- We emulate it with `logWarningAt`

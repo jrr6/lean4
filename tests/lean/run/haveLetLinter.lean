@@ -29,9 +29,10 @@ set_option pp.rawOnError true
 set_option pp.macroStack true
 
   -- haveI x := 3
-def k (q : Nat) : Unit :=
-  letI x : Nat := Nat.zero
-  Unit.unit
+def k (q : Nat) : PUnit.{0} :=
+  letI x : _ := PUnit.unit
+  id x
+  -- Unit.unit
   -- let (a, b) := (4, 5)
   -- [a + n]
 #eval k 59
