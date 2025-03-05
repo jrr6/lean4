@@ -118,7 +118,15 @@ private def _root_.Lean.Elab.InfoTree.nodeKind! : InfoTree → String
     | .ofFVarAliasInfo _ => "fvar alias"
     | .ofCustomInfo _ => "custom"
     | .ofMacroExpansionInfo _ => "macro expansion"
-    | _ => "weird"
+    | .ofPartialTermInfo _ => "partial term"
+    | .ofCommandInfo _ => "command"
+    | .ofOptionInfo _ => "option"
+    | .ofFieldInfo _ => "field"
+    | .ofCompletionInfo _ => "completion"
+    | .ofUserWidgetInfo _ => "user widget"
+    | .ofFieldRedeclInfo _ => "field redecl"
+    | .ofDelabTermInfo _ => "delab term"
+    | .ofChoiceInfo _ => "choice"
   | _ => panic! "Expected node"
 
 inductive DeclKind

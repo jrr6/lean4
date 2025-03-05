@@ -28,9 +28,13 @@ set_option pp.rawOnError true
 
 set_option pp.macroStack true
 
+-- TODO: also need to account for `doLet`
   -- haveI x := 3
-def k (q : Nat) : PUnit.{0} :=
-  letI x : _ := PUnit.unit
+-- def k (q : Nat) : PUnit.{0} :=
+--   letI x : _ := PUnit.unit
+--   id x
+def k (q : Nat) := do
+  let x := trivial
   id x
   -- Unit.unit
   -- let (a, b) := (4, 5)
