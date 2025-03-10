@@ -229,10 +229,15 @@ private def elabCtors (indFVars : Array Expr) (params : Array Expr) (r : ElabHea
         trace[Elab.inductive] "{ctorView.declName} : {type}"
         return { name := ctorView.declName, type }
 where
-  /-- Ensures that the arguments to recursive occurrences of the type family being defined match the
-      parameters from the inductive definition. This check is an underapproximation, since we cannot
-      inspect occurrences of the type being passed as an argument to type-level functions; the
-      kernel is responsible for detecting invalid instantiations by such callers. -/
+  /--
+  Ensures that the arguments to recursive occurrences of the type family being defined match the
+  parameters from the inductive definition.
+
+  This check is an underapproximation, since we cannot inspect occurrences of the type being passed
+  as an argument to type-level functions; in particular, we allow arbitrary bound variables where
+  parameters are expected, since we cannot know a priori how they will be instantiated by the
+  caller. The kernel is responsible for detecting invalid instantiations by such callers.
+  -/
   checkParamOccs (ctorType : Expr) : MetaM Expr :=
     let visit (e : Expr) : MetaM TransformStep := do
       let f := e.getAppFn
@@ -241,8 +246,10 @@ where
         for i in [:min args.size params.size] do
           let param := params[i]!
           let arg := args[i]!
+          -- TODO: this would be nice, but we need to swap out for `param` anyway
+          -- let arg' ← replaceFVarsWithFreshMVars arg
           unless (← isDefEq param arg) do
-            throwError "inductive datatype parameter mismatch in{indentExpr e}\nfound{indentExpr arg}\nexpected{indentExpr param}\n\
+            throwError m!"inductive datatype parameter mismatch in{indentExpr e}\nfound{indentExpr arg}\nbut expected{indentExpr param}\n\
                         The value of a parameter must be uniform throughout an inductive declaration; \
                         consider making this parameter an index if it must vary between occurrences in constructor types"
           args := args.set! i param
