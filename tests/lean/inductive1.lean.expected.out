@@ -21,9 +21,11 @@ inductive1.lean:81:0-81:33: error: invalid use of 'noncomputable' in inductive d
 inductive1.lean:82:2-82:8: error: declaration is not a definition 'T1''
 inductive1.lean:85:0-85:17: error: invalid 'private' constructor in a 'private' inductive datatype
 inductive1.lean:93:7-93:26: error: invalid inductive type, cannot mix unsafe and safe declarations in a mutually inductive datatypes
-inductive1.lean:100:0-100:4: error: constructor resulting type must be specified in inductive family declaration
+inductive1.lean:100:0-100:4: error: Missing constructor resulting type: The resulting type of a constructor must be specified in an inductive family declaration
 inductive1.lean:105:7-105:9: error: type expected, got
   (T1 : Nat → Type)
-inductive1.lean:108:0-108:10: error: unexpected constructor resulting type
+inductive1.lean:108:0-108:10: error: Unexpected constructor resulting type: Expected an application of 
+  T1
+but found
   Nat
 inductive1.lean:118:7-118:11: error: unknown identifier 'cons'

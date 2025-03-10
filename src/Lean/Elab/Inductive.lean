@@ -178,7 +178,7 @@ private def elabCtors (indFVars : Array Expr) (params : Array Expr) (r : ElabHea
           match ctorView.type? with
           | none          =>
             if indFamily then
-              throwError "constructor resulting type must be specified in inductive family declaration"
+              throwError "Missing constructor resulting type: The resulting type of a constructor must be specified in an inductive family declaration"
             return mkAppN indFVar params
           | some ctorType =>
             let type ← Term.elabType ctorType
@@ -188,9 +188,18 @@ private def elabCtors (indFVars : Array Expr) (params : Array Expr) (r : ElabHea
             let type ← checkParamOccs type
             forallTelescopeReducing type fun _ resultingType => do
               unless resultingType.getAppFn == indFVar do
-                throwError "unexpected constructor resulting type{indentExpr resultingType}"
+                let lazyAppMsg := MessageData.ofLazyM do
+                  if let some fvarId := indFVar.fvarId? then
+                    if let some decl := (← getLCtx).find? fvarId then
+                      if (← whnfD decl.type).isForall then
+                        return m!" an application of"
+                  return m!""
+                throwError "Unexpected constructor resulting type: Expected the constructor '{ctorView.declName}' to return{lazyAppMsg}{indentExpr indFVar}\nbut found{indentExpr resultingType}"
               unless (← isType resultingType) do
-                throwError "unexpected constructor resulting type, type expected{indentExpr resultingType}"
+                let lazyMsg := MessageData.ofLazyM do
+                  let resultingTypeType ← inferType resultingType
+                  return indentExpr resultingTypeType
+                throwError "Unexpected constructor resulting type: Expected a type, but found{indentExpr resultingType}\nof type{lazyMsg}"
             return type
         let type ← elabCtorType
         Term.synthesizeSyntheticMVarsNoPostponing
@@ -229,18 +238,29 @@ private def elabCtors (indFVars : Array Expr) (params : Array Expr) (r : ElabHea
         trace[Elab.inductive] "{ctorView.declName} : {type}"
         return { name := ctorView.declName, type }
 where
+  /--
+  Ensures that the arguments to recursive occurrences of the type family being defined match the
+  parameters from the inductive definition.
+  -/
   checkParamOccs (ctorType : Expr) : MetaM Expr :=
     let visit (e : Expr) : MetaM TransformStep := do
       let f := e.getAppFn
       if indFVars.contains f then
         let mut args := e.getAppArgs
         unless args.size ≥ params.size do
-          throwError "unexpected inductive type occurrence{indentExpr e}"
+          let expected := mkAppN f params
+          throwError "Missing parameters of inductive type: Found{indentExpr e}\nbut expected{indentExpr expected}\
+                      \n\nNote: All occurrences of an inductive type in the types of its constructors must include its fixed parameters. \
+                      To allow these arguments to vary, make them indices instead of parameters."
         for h : i in [:params.size] do
           let param := params[i]
           let arg := args[i]!
           unless (← isDefEq param arg) do
-            throwError "inductive datatype parameter mismatch{indentExpr arg}\nexpected{indentExpr param}"
+            let (arg, param) ← addPPExplicitToExposeDiff arg param
+            throwError m!"Mismatched parameters to inductive type constructor in{indentExpr e}\n\
+                          The provided argument{indentExpr arg}\nis not definitionally equal to the expected parameter{indentExpr param}\
+                          \n\nNote: The value of the parameter '{param}' must be the same throughout the inductive declaration. \
+                          Consider making this parameter an index if it must vary between occurrences in constructor types."
           args := args.set! i param
         return TransformStep.done (mkAppN f args)
       else

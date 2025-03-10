@@ -449,7 +449,8 @@ private def mkSizeOfSpecTheorem (indInfo : InductiveVal) (sizeOfFns : Array Name
       trace[Meta.sizeOf] "sizeOf spec theorem type: {thmType}"
       trace[Meta.sizeOf] "sizeOf spec theorem value: {thmValue}"
       unless (← isDefEq (← inferType thmValue) thmType) do
-        throwError "type mismatch"
+        throwError "Unable to generate `sizeOf` specification for '{.ofConstName ctorName}': \
+          The generated theorem had an unexpected type. This may be due to an elaborator bug."
       addDecl <| Declaration.thmDecl {
         name        := thmName
         levelParams := ctorInfo.levelParams
