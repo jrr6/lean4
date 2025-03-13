@@ -247,8 +247,10 @@ where
           let param := params[i]!
           let arg := args[i]!
           -- TODO: this would be nice, but we need to swap out for `param` anyway
+          -- TODO: double check that there's no need to wrap `transform` in `withNewMCTxDepth`
           -- let arg' ← replaceFVarsWithFreshMVars arg
           unless (← isDefEq param arg) do
+            let (arg, param) ← addPPExplicitToExposeDiff arg param
             throwError m!"inductive datatype parameter mismatch in{indentExpr e}\nfound{indentExpr arg}\nbut expected{indentExpr param}\n\
                         The value of a parameter must be uniform throughout an inductive declaration; \
                         consider making this parameter an index if it must vary between occurrences in constructor types"
