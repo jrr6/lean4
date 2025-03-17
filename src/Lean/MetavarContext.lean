@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Leonardo de Moura
 -/
 prelude
+import Init.Dynamic
 import Init.ShareCommon
 import Lean.Util.MonadCache
 import Lean.LocalContext
@@ -316,7 +317,7 @@ inductive MVarProvenanceKind
   | hole (name? : Option Name)
   | declType (declKind : String) (declName : Name)  -- Ex: declKind = "let rec", declName = `aux
   | defaultValue (valueKind : String) (type? : Option Expr)
-  | custom (msgData : String)  -- TODO: MessageData
+  | custom (msgData : Dynamic)
 
 structure MVarProvenance where
   ref : Syntax
@@ -326,8 +327,7 @@ structure LMVarProvenance where
   lctx      : LocalContext
   expr      : Expr
   ref       : Syntax
-  -- TODO: MessageData
-  msgData?  : Option String := none
+  msgData?  : Option Dynamic := none
 
 /-- The metavariable context is a set of metavariable declarations and their assignments.
 

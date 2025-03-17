@@ -56,7 +56,7 @@ private def mkLetRecDeclView (letRec : Syntax) : TermElabM LetRecView := do
       let typeStx := expandOptType declId decl[2]
       let (type, binderIds) ← elabBindersEx binders fun xs => do
           let type ← elabType typeStx
-          registerCustomErrorIfMVar type typeStx "failed to infer 'let rec' declaration type"
+          registerCustomProvenanceIfMVar type typeStx "failed to infer 'let rec' declaration type"
           let (binderIds, xs) := xs.unzip
           let type ← mkForallFVars xs type
           pure (type, binderIds)

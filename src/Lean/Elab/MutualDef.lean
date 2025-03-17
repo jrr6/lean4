@@ -90,7 +90,7 @@ private def check (prevHeaders : Array DefViewElabHeader) (newHeader : DefViewEl
     pure ()
 
 private def registerFailedToInferDefTypeInfo (type : Expr) (ref : Syntax) : TermElabM Unit :=
-  registerCustomErrorIfMVar type ref "failed to infer definition type"
+  registerCustomProvenanceIfMVar type ref "failed to infer definition type"
 
 /--
   Return `some [b, c]` if the given `views` are representing a declaration of the form

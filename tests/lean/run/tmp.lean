@@ -1,0 +1,1 @@
+def bad x := x

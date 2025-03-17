@@ -58,7 +58,7 @@ private def elabOptLevel (stx : Syntax) : TermElabM Level :=
 @[builtin_term_elab «hole»] def elabHole : TermElab := fun stx expectedType? => do
   let kind := if (← read).inPattern || !(← read).holesAsSyntheticOpaque then MetavarKind.natural else MetavarKind.syntheticOpaque
   let mvar ← mkFreshExprMVar expectedType? kind
-  registerMVarErrorHoleInfo mvar.mvarId! stx
+  registerMVarHoleProvenance mvar.mvarId! stx none
   pure mvar
 
 @[builtin_term_elab «syntheticHole»] def elabSyntheticHole : TermElab := fun stx expectedType? => do
@@ -67,7 +67,8 @@ private def elabOptLevel (stx : Syntax) : TermElabM Level :=
   let mkNewHole : Unit → TermElabM Expr := fun _ => do
     let kind := if (← read).inPattern then MetavarKind.natural else MetavarKind.syntheticOpaque
     let mvar ← mkFreshExprMVar expectedType? kind userName
-    registerMVarErrorHoleInfo mvar.mvarId! stx
+    -- TODO: option/anonymous clash
+    registerMVarHoleProvenance mvar.mvarId! stx userName
     return mvar
   if userName.isAnonymous || (← read).inPattern then
     mkNewHole ()
@@ -198,7 +199,8 @@ private def mkFreshTypeMVarFor (expectedType? : Option Expr) : TermElabM Expr :=
   let extraMsg := m!"numerals are polymorphic in Lean, but the numeral `{val}` cannot be used in a context where the expected type is{indentExpr typeMVar}\ndue to the absence of the instance above"
   let mvar ← mkInstMVar (mkApp2 (Lean.mkConst ``OfNat [u]) typeMVar (mkRawNatLit val)) extraMsg
   let r := mkApp3 (Lean.mkConst ``OfNat.ofNat [u]) typeMVar (mkRawNatLit val) mvar
-  registerMVarErrorImplicitArgInfo mvar.mvarId! stx r
+  -- TODO: name
+  registerMVarImplicitArgProvenance mvar.mvarId! stx r .anonymous
   return r
 
 @[builtin_term_elab rawNatLit] def elabRawNatLit : TermElab :=  fun stx _ => do
@@ -215,7 +217,8 @@ def elabScientificLit : TermElab := fun stx expectedType? => do
     let u ← getDecLevel typeMVar
     let mvar ← mkInstMVar (mkApp (Lean.mkConst ``OfScientific [u]) typeMVar)
     let r := mkApp5 (Lean.mkConst ``OfScientific.ofScientific [u]) typeMVar mvar (mkRawNatLit m) (toExpr sign) (mkRawNatLit e)
-    registerMVarErrorImplicitArgInfo mvar.mvarId! stx r
+    -- TODO: name
+    registerMVarImplicitArgProvenance mvar.mvarId! stx r .anonymous
     return r
 
 @[builtin_term_elab char] def elabCharLit : TermElab := fun stx _ => do

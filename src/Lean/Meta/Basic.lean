@@ -866,12 +866,10 @@ def registerMVarHoleProvenance (mvarId : MVarId) (ref : Syntax) (name? : Option 
 def registerMVarImplicitArgProvenance (mvarId : MVarId) (ref : Syntax) (app : Expr) (name : Name) : MetaM Unit := do
   registerMVarProvenance mvarId { ref, kind := .implicitArg (← getLCtx) app name }
 
--- TODO: MessageData
-def registerMVarCustomProvenance (mvarId : MVarId) (ref : Syntax) (msgData : String) : MetaM Unit := do
-  registerMVarProvenance mvarId { ref, kind := .custom msgData }
+def registerMVarCustomProvenance (mvarId : MVarId) (ref : Syntax) (msgData : MessageData) : MetaM Unit := do
+  registerMVarProvenance mvarId { ref, kind := .custom (.mk msgData) }
 
--- TODO: MessageData
-def registerCustomProvenanceIfMVar (e : Expr) (ref : Syntax) (msgData : String) : MetaM Unit :=
+def registerCustomProvenanceIfMVar (e : Expr) (ref : Syntax) (msgData : MessageData) : MetaM Unit :=
   match e.getAppFn with
   | Expr.mvar mvarId => registerMVarCustomProvenance mvarId ref msgData
   | _ => pure ()
@@ -879,9 +877,8 @@ def registerCustomProvenanceIfMVar (e : Expr) (ref : Syntax) (msgData : String) 
 def registerLevelMVarProvenance (lmvarId : LMVarId) (levelMVarProvenance : LMVarProvenance) : MetaM Unit :=
   modify fun s => { s with mctx := s.mctx.setLevelMVarProvenance lmvarId levelMVarProvenance }
 
--- TODO: MessageData
-def registerLevelMVarExprProvenance (lmvarId : LMVarId) (expr : Expr) (ref : Syntax) (msgData? : Option String := none) : MetaM Unit := do
-  registerLevelMVarProvenance lmvarId { lctx := (← getLCtx), expr, ref, msgData? }
+def registerLevelMVarExprProvenance (lmvarId : LMVarId) (expr : Expr) (ref : Syntax) (msgData? : Option MessageData := none) : MetaM Unit := do
+  registerLevelMVarProvenance lmvarId { lctx := (← getLCtx), expr, ref, msgData? := msgData?.map Dynamic.mk }
 
 def getMVarProvenance? (mvarId : MVarId) : MetaM (Option MVarProvenance) :=
   return (← get).mctx.getMVarProvenance? mvarId

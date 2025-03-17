@@ -61,7 +61,9 @@ def synthesizeAppInstMVars (instMVars : Array MVarId) (app : Expr) : TermElabM U
   for mvarId in instMVars do
     unless (← synthesizeInstMVarCore mvarId) do
       registerSyntheticMVarWithCurrRef mvarId (.typeClass none)
-      registerMVarErrorImplicitArgInfo mvarId (← getRef) app
+      -- registerMVarHoleProvenance mvarId (← getRef) app
+      -- TODO: handle the `app`
+      registerMVarHoleProvenance mvarId (← getRef) none
 
 /-- Return `some namedArg` if `namedArgs` contains an entry for `binderName`. -/
 private def findBinderName? (namedArgs : List NamedArg) (binderName : Name) : Option NamedArg :=
@@ -377,7 +379,8 @@ private def finalize : M Expr := do
   let ref ← getRef
   -- Register the error context of implicits
   for mvarId in s.toSetErrorCtx do
-    registerMVarErrorImplicitArgInfo mvarId ref e
+    -- TODO: name
+    registerMVarImplicitArgProvenance mvarId ref e .anonymous
   if !s.etaArgs.isEmpty then
     e ← mkLambdaFVars s.etaArgs e
   /-
@@ -1236,15 +1239,15 @@ private def resolveLValAux (e : Expr) (eType : Expr) (lval : LVal) : TermElabM L
 private partial def consumeImplicits (stx : Syntax) (e eType : Expr) (hasArgs : Bool) : TermElabM (Expr × Expr) := do
   let eType ← whnfCore eType
   match eType with
-  | .forallE _ d b bi =>
+  | .forallE n d b bi =>
     if bi.isImplicit || (hasArgs && bi.isStrictImplicit) then
       let mvar ← mkFreshExprMVar d
-      registerMVarErrorHoleInfo mvar.mvarId! stx
+      registerMVarHoleProvenance mvar.mvarId! stx n
       consumeImplicits stx (mkApp e mvar) (b.instantiate1 mvar) hasArgs
     else if bi.isInstImplicit then
       let mvar ← mkInstMVar d
       let r := mkApp e mvar
-      registerMVarErrorImplicitArgInfo mvar.mvarId! stx r
+      registerMVarImplicitArgProvenance mvar.mvarId! stx r n
       consumeImplicits stx r (b.instantiate1 mvar) hasArgs
     else match d.getOptParamDefault? with
       | some defVal => consumeImplicits stx (mkApp e defVal) (b.instantiate1 defVal) hasArgs

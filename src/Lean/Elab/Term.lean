@@ -765,7 +765,10 @@ def _root_.Lean.MVarProvenance.logError (mvarProvenance : MVarProvenance) (mvarI
     let msg := msg ++ Format.line ++ "context:" ++ Format.line ++ MessageData.ofGoal mvarId
     logErrorAt mvarProvenance.ref (MessageData.tagged `Elab.synthPlaceholder <| appendExtra msg)
   | .custom msg =>
+    let msg := msg.get? MessageData |>.getD m!""
     logErrorAt mvarProvenance.ref (appendExtra msg)
+  -- TODO: add remaining cases
+  | _ => logErrorAt mvarProvenance.ref m!"TODO: unsupported"
 where
   /-- Append the argument name (if available) to the message.
       Remark: if the argument name contains macro scopes we do not append it. -/
@@ -793,11 +796,14 @@ def logUnassignedUsingErrorInfos (pendingMVarIds : Array MVarId) (extraMsg? : Op
     let hasOtherErrors ← MonadLog.hasErrors
     let mut hasNewErrors := false
     let mut alreadyVisited : MVarIdSet := {}
+    logInfo m!"context: {(← getThe Meta.State).mctx.mvarProvenances.toArray.map (MVarId.name ∘ Prod.fst)}"
     for mvarId in pendingMVarIds do
       -- let mvarId := mvarErrorInfo.mvarId
       unless alreadyVisited.contains mvarId do
         alreadyVisited := alreadyVisited.insert mvarId
+        logInfo m!"checking {mvarId.name}:{mvarId}"
         if let some mvarProvenance ← getMVarProvenance? mvarId then
+          logInfo "found provenance of {mvarId.name}"
           /- The metavariable `mvarErrorInfo.mvarId` may have been assigned or
             delayed assigned to another metavariable that is unassigned. -/
           let mvarDeps ← getMVars (mkMVar mvarId)
@@ -823,8 +829,8 @@ def exposeLevelMVars (e : Expr) : MetaM Expr :=
 def _root_.Lean.LMVarProvenance.logError (provenance : LMVarProvenance) : TermElabM Unit :=
   Meta.withLCtx provenance.lctx {} do
     let e' ← exposeLevelMVars (← instantiateMVars provenance.expr)
-    -- TODO: MessageData (also, this is a bad error message)
-    let msg := provenance.msgData?.getD "don't know how to synthesize universe level metavariables"
+    let msg := provenance.msgData?.bind (Dynamic.get? MessageData ·)
+    let msg := msg.getD m!"don't know how to synthesize universe level metavariables"
     let msg := m!"{msg}{indentExpr e'}"
     logErrorAt provenance.ref msg
 
