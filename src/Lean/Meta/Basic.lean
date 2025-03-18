@@ -699,6 +699,12 @@ def setPostponed (postponed : PersistentArray PostponedEntry) : MetaM Unit :=
 @[inline] def modifyPostponed (f : PersistentArray PostponedEntry → PersistentArray PostponedEntry) : MetaM Unit :=
   modify fun s => { s with postponed := f s.postponed }
 
+def getMVarProvenance? (mvarId : MVarId) : MetaM (Option MVarProvenance) :=
+  return (← getMCtx).getMVarProvenance? mvarId
+
+def setMVarProvenance (mvarId : MVarId) (provenance : MVarProvenance) : MetaM Unit :=
+  modify fun s => { s with mctx := s.mctx.setMVarProvenance mvarId provenance }
+
 /--
   `useEtaStruct inductName` return `true` if we eta for structures is enabled for
   for the inductive datatype `inductName`.
@@ -794,53 +800,55 @@ protected def withIncRecDepth (x : n α) : n α :=
   mapMetaM (withIncRecDepth (m := MetaM)) x
 
 private def mkFreshExprMVarAtCore
-    (mvarId : MVarId) (lctx : LocalContext) (localInsts : LocalInstances) (type : Expr) (kind : MetavarKind) (userName : Name) (numScopeArgs : Nat) : MetaM Expr := do
-  modifyMCtx fun mctx => mctx.addExprMVarDecl mvarId userName lctx localInsts type kind numScopeArgs;
+    (mvarId : MVarId) (lctx : LocalContext) (localInsts : LocalInstances) (type : Expr) (kind : MetavarKind) (userName : Name) (numScopeArgs : Nat) (provenance? : Option MVarProvenance) : MetaM Expr := do
+  modifyMCtx fun mctx => mctx.addExprMVarDecl mvarId userName lctx localInsts type kind numScopeArgs provenance?;
   return mkMVar mvarId
 
 def mkFreshExprMVarAt
     (lctx : LocalContext) (localInsts : LocalInstances) (type : Expr)
     (kind : MetavarKind := MetavarKind.natural) (userName : Name := Name.anonymous) (numScopeArgs : Nat := 0)
+    (provenance? : Option MVarProvenance := none)
     : MetaM Expr := do
-  mkFreshExprMVarAtCore (← mkFreshMVarId) lctx localInsts type kind userName numScopeArgs
+  mkFreshExprMVarAtCore (← mkFreshMVarId) lctx localInsts type kind userName numScopeArgs provenance?
 
 def mkFreshLevelMVar : MetaM Level := do
   let mvarId ← mkFreshLMVarId
   modifyMCtx fun mctx => mctx.addLevelMVarDecl mvarId;
   return mkLevelMVar mvarId
 
-private def mkFreshExprMVarCore (type : Expr) (kind : MetavarKind) (userName : Name) : MetaM Expr := do
-  mkFreshExprMVarAt (← getLCtx) (← getLocalInstances) type kind userName
+private def mkFreshExprMVarCore (type : Expr) (kind : MetavarKind) (userName : Name) (provenance? : Option MVarProvenance) : MetaM Expr := do
+  mkFreshExprMVarAt (← getLCtx) (← getLocalInstances) type kind userName (provenance? := provenance?)
 
-private def mkFreshExprMVarImpl (type? : Option Expr) (kind : MetavarKind) (userName : Name) : MetaM Expr :=
+private def mkFreshExprMVarImpl (type? : Option Expr) (kind : MetavarKind) (userName : Name) (provenance? : Option MVarProvenance) : MetaM Expr :=
   match type? with
-  | some type => mkFreshExprMVarCore type kind userName
+  | some type => mkFreshExprMVarCore type kind userName provenance?
   | none      => do
     let u ← mkFreshLevelMVar
-    let type ← mkFreshExprMVarCore (mkSort u) MetavarKind.natural Name.anonymous
-    mkFreshExprMVarCore type kind userName
+    let type ← mkFreshExprMVarCore (mkSort u) MetavarKind.natural Name.anonymous provenance?
+    mkFreshExprMVarCore type kind userName provenance?
 
-def mkFreshExprMVar (type? : Option Expr) (kind := MetavarKind.natural) (userName := Name.anonymous) : MetaM Expr :=
-  mkFreshExprMVarImpl type? kind userName
+def mkFreshExprMVar (type? : Option Expr) (kind := MetavarKind.natural) (userName := Name.anonymous) (provenance? : Option MVarProvenance := none) : MetaM Expr :=
+  mkFreshExprMVarImpl type? kind userName provenance?
 
-def mkFreshTypeMVar (kind := MetavarKind.natural) (userName := Name.anonymous) : MetaM Expr := do
+def mkFreshTypeMVar (kind := MetavarKind.natural) (userName := Name.anonymous) (provenance? : Option MVarProvenance := none) : MetaM Expr := do
   let u ← mkFreshLevelMVar
-  mkFreshExprMVar (mkSort u) kind userName
+  mkFreshExprMVar (mkSort u) kind userName provenance?
 
 /-- Low-level version of `MkFreshExprMVar` which allows users to create/reserve a `mvarId` using `mkFreshId`, and then later create
    the metavar using this method. -/
 private def mkFreshExprMVarWithIdCore (mvarId : MVarId) (type : Expr)
     (kind : MetavarKind := MetavarKind.natural) (userName : Name := Name.anonymous) (numScopeArgs : Nat := 0)
+    (provenance? : Option MVarProvenance := none)
     : MetaM Expr := do
-  mkFreshExprMVarAtCore mvarId (← getLCtx) (← getLocalInstances) type kind userName numScopeArgs
+  mkFreshExprMVarAtCore mvarId (← getLCtx) (← getLocalInstances) type kind userName numScopeArgs provenance?
 
-def mkFreshExprMVarWithId (mvarId : MVarId) (type? : Option Expr := none) (kind : MetavarKind := MetavarKind.natural) (userName := Name.anonymous) : MetaM Expr :=
+def mkFreshExprMVarWithId (mvarId : MVarId) (type? : Option Expr := none) (kind : MetavarKind := MetavarKind.natural) (userName := Name.anonymous) (provenance? : Option MVarProvenance := none) : MetaM Expr :=
   match type? with
-  | some type => mkFreshExprMVarWithIdCore mvarId type kind userName
+  | some type => mkFreshExprMVarWithIdCore mvarId type kind userName (provenance? := provenance?)
   | none      => do
     let u ← mkFreshLevelMVar
     let type ← mkFreshExprMVar (mkSort u)
-    mkFreshExprMVarWithIdCore mvarId type kind userName
+    mkFreshExprMVarWithIdCore mvarId type kind userName (provenance? := provenance?)
 
 def mkFreshLevelMVars (num : Nat) : MetaM (List Level) :=
   num.foldM (init := []) fun _ _ us =>

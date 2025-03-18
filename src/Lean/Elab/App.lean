@@ -532,7 +532,8 @@ mutual
   private partial def addImplicitArg (argName : Name) : M Expr := do
     let argType ← getArgExpectedType
     let arg ← if (← isNextOutParamOfLocalInstanceAndResult) then
-      let arg ← mkFreshExprMVar argType
+      -- TODO: `optParam` provenance instead?
+      let arg ← mkFreshExprMVar argType (provenance? := some (← MVarProvenance.ofKind (.inferredArg .implicit argName argType)))
       /- When the result type is an output parameter, we don't want to propagate the expected type.
          So, we just mark `propagateExpected := false` to disable it.
          At `finalize`, we check whether `arg` is still unassigned, if it is, we apply default instances,
@@ -540,7 +541,7 @@ mutual
       modify fun s => { s with resultTypeOutParam? := some arg.mvarId!, propagateExpected := false }
       pure arg
     else
-      mkFreshExprMVar argType
+      mkFreshExprMVar argType (provenance? := some (← MVarProvenance.ofKind (.inferredArg .implicit argName argType)))
     modify fun s => { s with toSetErrorCtx := s.toSetErrorCtx.push arg.mvarId! }
     addNewArg argName arg
     main
@@ -703,7 +704,7 @@ mutual
       main
   where
     mkInstMVar (ty : Expr) : M Expr := do
-      let arg ← mkFreshExprMVar ty MetavarKind.synthetic
+      let arg ← mkFreshExprMVar ty MetavarKind.synthetic (provenance? := some (← MVarProvenance.ofKind (.inst ty)))
       addInstMVar arg.mvarId!
       addNewArg argName arg
       return arg
@@ -992,8 +993,9 @@ def saveArgInfo (arg : Expr) (binderName : Name) : M Unit := do
     registerMVarArgName arg.mvarId! binderName
 
 /-- Create an implicit argument using the given `BinderInfo`. -/
-def mkImplicitArg (argExpectedType : Expr) (bi : BinderInfo) : M Expr := do
+def mkImplicitArg (name : Name) (argExpectedType : Expr) (bi : BinderInfo) : M Expr := do
   let arg ← mkFreshExprMVar argExpectedType (if bi.isInstImplicit then .synthetic else .natural)
+              (provenance? := some (← MVarProvenance.ofKind (.inferredArg bi name argExpectedType)))
   if bi.isInstImplicit then
     modify fun s => { s with instMVars := s.instMVars.push arg.mvarId! }
   return arg
@@ -1017,19 +1019,19 @@ partial def main : M Expr := do
         /- Note: undef occurs when the motive is explicit but missing.
            In this case, we treat it as if it were an implicit argument
            to support writing `h.rec` when `h : False`, rather than requiring `h.rec _`. -/
-        mkImplicitArg binderType binderInfo
+        mkImplicitArg binderName binderType binderInfo
     setMotive motive
     addArgAndContinue motive
   else if (← read).elimInfo.majorsPos.contains idx then
     match (← getNextArg? binderName binderInfo) with
     | .some arg => let discr ← elabArg arg binderType; addArgAndContinue discr
     | .undef => finalize
-    | .none => let discr ← mkImplicitArg binderType binderInfo; addArgAndContinue discr
+    | .none => let discr ← mkImplicitArg binderName binderType binderInfo; addArgAndContinue discr
   else match (← getNextArg? binderName binderInfo) with
     | .some (.stx stx) => addArgAndContinue (← postponeElabTerm stx binderType)
     | .some (.expr val) => addArgAndContinue (← ensureArgType (← get).f val binderType)
     | .undef => finalize
-    | .none => addArgAndContinue (← mkImplicitArg binderType binderInfo)
+    | .none => addArgAndContinue (← mkImplicitArg binderName binderType binderInfo)
 
 end ElabElim
 
@@ -1238,6 +1240,7 @@ private partial def consumeImplicits (stx : Syntax) (e eType : Expr) (hasArgs : 
   match eType with
   | .forallE _ d b bi =>
     if bi.isImplicit || (hasArgs && bi.isStrictImplicit) then
+      -- TODO: provenance
       let mvar ← mkFreshExprMVar d
       registerMVarErrorHoleInfo mvar.mvarId! stx
       consumeImplicits stx (mkApp e mvar) (b.instantiate1 mvar) hasArgs

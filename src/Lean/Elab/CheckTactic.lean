@@ -28,6 +28,7 @@ def elabCheckTactic : CommandElab := fun stx => do
       let u ← withSynthesize (postpone := .no) <| Lean.Elab.Term.elabTerm t none
       let type ← inferType u
       let checkGoalType ← mkCheckGoalType u type
+      -- TODO: provenance
       let mvar ← mkFreshExprMVar (.some checkGoalType)
       let expTerm ← Lean.Elab.Term.elabTerm result (.some type)
       let (goals, _) ← Lean.Elab.runTactic mvar.mvarId! tac.raw
@@ -53,6 +54,7 @@ def elabCheckTacticFailure : CommandElab := fun stx => do
       let val ← Lean.Elab.Term.elabTerm t none
       let type ← inferType val
       let checkGoalType ← mkCheckGoalType val type
+      -- TODO: provenance
       let mvar ← mkFreshExprMVar (.some checkGoalType)
       let act := Lean.Elab.runTactic mvar.mvarId! tactic.raw
       match ← try (Term.withoutErrToSorry (some <$> act)) catch _ => pure none with

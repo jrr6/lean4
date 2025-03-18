@@ -60,7 +60,7 @@ private def mkLetRecDeclView (letRec : Syntax) : TermElabM LetRecView := do
           let (binderIds, xs) := xs.unzip
           let type ← mkForallFVars xs type
           pure (type, binderIds)
-      let mvar ← mkFreshExprMVar type MetavarKind.syntheticOpaque
+      let mvar ← mkFreshExprMVar type MetavarKind.syntheticOpaque (provenance? := some (← MVarProvenance.ofKind (.custom m!"let declaration")))
       let valStx ← if decl.isOfKind `Lean.Parser.Term.letIdDecl then
         pure decl[4]
       else

@@ -57,7 +57,7 @@ private def elabOptLevel (stx : Syntax) : TermElabM Level :=
 
 @[builtin_term_elab «hole»] def elabHole : TermElab := fun stx expectedType? => do
   let kind := if (← read).inPattern || !(← read).holesAsSyntheticOpaque then MetavarKind.natural else MetavarKind.syntheticOpaque
-  let mvar ← mkFreshExprMVar expectedType? kind
+  let mvar ← mkFreshExprMVar expectedType? kind (provenance? := some (← MVarProvenance.ofKind (.hole false)))
   registerMVarErrorHoleInfo mvar.mvarId! stx
   pure mvar
 
@@ -66,7 +66,7 @@ private def elabOptLevel (stx : Syntax) : TermElabM Level :=
   let userName := if arg.isIdent then arg.getId else Name.anonymous
   let mkNewHole : Unit → TermElabM Expr := fun _ => do
     let kind := if (← read).inPattern then MetavarKind.natural else MetavarKind.syntheticOpaque
-    let mvar ← mkFreshExprMVar expectedType? kind userName
+    let mvar ← mkFreshExprMVar expectedType? kind userName (provenance? := some (← MVarProvenance.ofKind (.hole true)))
     registerMVarErrorHoleInfo mvar.mvarId! stx
     return mvar
   if userName.isAnonymous || (← read).inPattern then
@@ -116,6 +116,7 @@ private def elabOptLevel (stx : Syntax) : TermElabM Level :=
      | some _ => throwError "invalid 'let_mvar%', metavariable '?{n.getId}' has already been used"
      | none =>
        let e ← elabTerm e none
+       -- TODO: provenance
        let mvar ← mkFreshExprMVar (← inferType e) MetavarKind.syntheticOpaque n.getId
        mvar.mvarId!.assign e
        -- We use `mkSaveInfoAnnotation` to make sure the info trees for `e` are saved even if `b` is a metavariable.
@@ -173,8 +174,8 @@ private def getMVarFromUserName (ident : Syntax) : MetaM Expr := do
   | some val => pure $ mkStrLit val
   | none     => throwIllFormedSyntax
 
-private def mkFreshTypeMVarFor (expectedType? : Option Expr) : TermElabM Expr := do
-  let typeMVar ← mkFreshTypeMVar MetavarKind.synthetic
+private def mkFreshTypeMVarFor (expectedType? : Option Expr) (ref : Syntax) : TermElabM Expr := do
+  let typeMVar ← mkFreshTypeMVar MetavarKind.synthetic (provenance? := some (MVarProvenance.ofKindAt ref (.expectedTypeStx ref)))
   match expectedType? with
   | some expectedType => discard <| isDefEq expectedType typeMVar
   | _                 => pure ()
@@ -184,7 +185,7 @@ private def mkFreshTypeMVarFor (expectedType? : Option Expr) : TermElabM Expr :=
   let val ← match stx.isNatLit? with
     | some val => pure val
     | none     => throwIllFormedSyntax
-  let typeMVar ← mkFreshTypeMVarFor expectedType?
+  let typeMVar ← mkFreshTypeMVarFor expectedType? stx
   let u ← try
     getDecLevel typeMVar
   catch ex =>
@@ -211,7 +212,7 @@ def elabScientificLit : TermElab := fun stx expectedType? => do
   match stx.isScientificLit? with
   | none        => throwIllFormedSyntax
   | some (m, sign, e) =>
-    let typeMVar ← mkFreshTypeMVarFor expectedType?
+    let typeMVar ← mkFreshTypeMVarFor expectedType? stx
     let u ← getDecLevel typeMVar
     let mvar ← mkInstMVar (mkApp (Lean.mkConst ``OfScientific [u]) typeMVar)
     let r := mkApp5 (Lean.mkConst ``OfScientific.ofScientific [u]) typeMVar mvar (mkRawNatLit m) (toExpr sign) (mkRawNatLit e)

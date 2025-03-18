@@ -34,6 +34,7 @@ def mkCalcTrans (result resultType step stepType : Expr) : MetaM (Expr × Expr) 
   let (α, β, γ)       := (← inferType a, ← inferType b, ← inferType c)
   let (u_1, u_2, u_3) := (← getLevel α, ← getLevel β, ← getLevel γ)
   let w ← mkFreshLevelMVar
+  -- TODO: provenance
   let t ← mkFreshExprMVar (← mkArrow α (← mkArrow γ (mkSort w)))
   let selfType := mkAppN (Lean.mkConst ``Trans [u, v, w, u_1, u_2, u_3]) #[α, β, γ, r, s, t]
   match (← trySynthInstance selfType) with

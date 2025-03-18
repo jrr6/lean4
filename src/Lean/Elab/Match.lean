@@ -190,7 +190,7 @@ structure PatternVarDecl where
 private partial def withPatternVars {α} (pVars : Array PatternVar) (k : Array PatternVarDecl → TermElabM α) : TermElabM α :=
   let rec loop (i : Nat) (decls : Array PatternVarDecl) (userNames : Array Name) := do
     if h : i < pVars.size then
-      let type ← mkFreshTypeMVar
+      let type ← mkFreshTypeMVar (provenance? := some (MVarProvenance.ofKindAt pVars[i] (.expectedTypeStx pVars[i])))
       withLocalDecl pVars[i].getId BinderInfo.default type fun x =>
         loop (i+1) (decls.push { fvarId := x.fvarId! }) (userNames.push Name.anonymous)
     else
@@ -803,6 +803,7 @@ private def elabMatchAltView (discrs : Array Discr) (alt : MatchAltView) (matchT
             let matchType ← instantiateMVars matchType
             -- If `matchType` is of the form `@m ...`, we create a new metavariable with the current scope.
             -- This improves the effectiveness of the `isDefEq` default approximations
+            -- TODO: provenance
             let matchType' ← if matchType.getAppFn.isMVar then mkFreshTypeMVar else pure matchType
             withToClear toClear matchType' do
               let rhs ← elabTermEnsuringType alt.rhs matchType'
@@ -1151,6 +1152,7 @@ private def waitExpectedType (expectedType? : Option Expr) : TermElabM Expr := d
   tryPostponeIfNoneOrMVar expectedType?
   match expectedType? with
     | some expectedType => pure expectedType
+    -- TODO: provenance
     | none              => mkFreshTypeMVar
 
 private def tryPostponeIfDiscrTypeIsMVar (matchStx : Syntax) : TermElabM Unit := do
@@ -1198,6 +1200,7 @@ private def waitExpectedTypeAndDiscrs (matchStx : Syntax) (expectedType? : Optio
   tryPostponeIfDiscrTypeIsMVar matchStx
   match expectedType? with
   | some expectedType => return expectedType
+  -- TODO: provenance
   | none              => mkFreshTypeMVar
 
 /--

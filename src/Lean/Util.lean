@@ -10,6 +10,7 @@ import Lean.Util.CollectMVars
 import Lean.Util.CollectLevelMVars
 import Lean.Util.FindMVar
 import Lean.Util.FindLevelMVar
+import Lean.Util.MetavarProvenance
 import Lean.Util.MonadCache
 import Lean.Util.PPExt
 import Lean.Util.Path

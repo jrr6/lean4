@@ -8,6 +8,7 @@ import Lean.PrettyPrinter.Delaborator.Attributes
 import Lean.PrettyPrinter.Delaborator.Basic
 import Lean.PrettyPrinter.Delaborator.SubExpr
 import Lean.PrettyPrinter.Delaborator.TopDownAnalyze
+import Lean.Util.MetavarProvenance
 import Lean.Meta.CoeAttr
 
 namespace Lean.PrettyPrinter.Delaborator
@@ -53,7 +54,7 @@ def delabBVar : Delab := do
 def delabMVarAux (m : MVarId) : DelabM Term := do
   let mkMVarPlaceholder : DelabM Term := `(?_)
   let mkMVar (n : Name) : DelabM Term := `(?$(mkIdent n))
-  withTypeAscription (cond := ← getPPOption getPPMVarsWithType) do
+  let stx ← withTypeAscription (cond := ← getPPOption getPPMVarsWithType) do
     if ← getPPOption getPPMVars then
       match (← m.getDecl).userName with
       | .anonymous =>
@@ -64,6 +65,12 @@ def delabMVarAux (m : MVarId) : DelabM Term := do
       | n => mkMVar n
     else
       mkMVarPlaceholder
+  let stx ← annotateCurPos stx
+  let provenance? ← getMVarProvenance? m
+  if let some provenance := provenance? then
+    let msg ← provenance.kind.toMessageData.toString
+    addDelabTermInfo (← getPos) stx (.mvar m) (docString? := msg)
+  return stx
 
 @[builtin_delab mvar]
 def delabMVar : Delab := do

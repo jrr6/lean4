@@ -12,6 +12,7 @@ import Lean.Compiler.ImplementedByAttr
 import Lean.Elab.SyntheticMVars
 import Lean.Elab.Eval
 import Lean.Elab.Binders
+import Lean.Util.MetavarProvenance
 
 namespace Lean.Elab.Term
 open Meta
@@ -227,9 +228,10 @@ register_builtin_option debugAssertions : Bool := {
   | `(dbg_trace $arg:term; $body)            => `(dbgTrace (toString $arg) fun _ => $body)
   | _                                        => Macro.throwUnsupported
 
-@[builtin_term_elab «sorry»] def elabSorry : TermElab := fun _ expectedType? => do
-  let type ← expectedType?.getDM mkFreshTypeMVar
+@[builtin_term_elab «sorry»] def elabSorry : TermElab := fun stx expectedType? => do
+  let type ← expectedType?.getDM (mkFreshTypeMVar (provenance? := some (MVarProvenance.ofKindAt stx (.expectedTypeStx stx))))
   mkLabeledSorry type (synthetic := false) (unique := true)
+
 
 /-- Return syntax `Prod.mk elems[0] (Prod.mk elems[1] ... (Prod.mk elems[elems.size - 2] elems[elems.size - 1])))` -/
 partial def mkPairs (elems : Array Term) : MacroM Term :=
@@ -496,6 +498,7 @@ private def withLocalIdentFor (stx : Term) (e : Expr) (k : Term → TermElabM Ex
   if mStx.getKind == ``Lean.Parser.Term.macroDollarArg then
     mStx := mStx[1]
   let m ← elabTerm mStx (← mkArrow (mkSort levelOne) (mkSort levelOne))
+  -- TODO: provenance
   let ω ← mkFreshExprMVar (mkSort levelOne)
   let stWorld ← mkAppM ``STWorld #[ω, m]
   discard <| mkInstMVar stWorld

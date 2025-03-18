@@ -98,6 +98,7 @@ structure ExtractMonadResult where
 private def mkUnknownMonadResult : MetaM ExtractMonadResult := do
   let u ← mkFreshLevelMVar
   let v ← mkFreshLevelMVar
+  -- TODO: provenance
   let m ← mkFreshExprMVar (← mkArrow (mkSort (mkLevelSucc u)) (mkSort (mkLevelSucc v)))
   let returnType ← mkFreshExprMVar (mkSort (mkLevelSucc u))
   return { m, returnType, expectedType := mkApp m returnType }

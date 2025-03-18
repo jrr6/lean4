@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Leonardo de Moura
 -/
 prelude
+import Init.Dynamic
 import Init.ShareCommon
 import Lean.Util.MonadCache
 import Lean.LocalContext
@@ -311,29 +312,74 @@ structure DelayedMetavarAssignment where
   fvars         : Array Expr
   mvarIdPending : MVarId
 
+inductive MVarProvenanceKind where
+  /--
+  An inferred argument with binder info `bi`, name `name`, and type `type`
+  -/
+  | inferredArg (bi : BinderInfo) (name : Name) (type : Expr)
+  | expectedTypeStx (stx : Syntax)
+  -- TODO: it would be nice to get rid of one of these. Let's see if that's possible in practice.
+  -- (Pretty sure we want the first in case elab-expecting-type fails in some weird way? So maybe we
+  -- can get away w/o the expr variant?)
+  | expectedTypeExpr (e : Expr)
+  /--
+  An automatic parameter or (if `structField` is `true`) structure field of given `name` and `type`
+  occurring in `e`. -/
+  | autoParam (structField : Bool) (name : Name) (type : Expr) (e : Expr)
+  /-- A hole (`?_` if `synthetic`, else `_`) -/
+  | hole (synthetic : Bool)
+  /--
+  A placeholder for an instance to be synthesized of type `type` occurring in expression `e`.
+  Note: instance-implicit arguments
+  -/
+  -- TODO: this is basically useless because we can already see the type on hover. Probably either
+  -- use the inferred arg kind for inst arguments or else defer to custom for other use cases.
+  | inst (type : Expr)
+  /-- A metavariable representing an `outParam` of name `name` and type `type` in expression `e`. -/
+  | outParam (name : Name) (type : Expr) (e : Expr)
+  /-- A metavariable representing the result of the (eventual, postponed) elaboration of `stx` -/
+  | postponed (stx : Syntax)
+  /-- A custom metavariable provenance. `msg` is expected to contain `MessageData`. -/
+  | ofCustom (msg : Dynamic)
+  -- TODO: should we add this? (Put differently: how much of a memory hit is it to store a syntax
+  -- ref with every metavariable?)
+  -- /--
+  -- This metavariable has no meaningful provenance of its own and should inherit the provenance of any
+  -- metavariable to which it is assigned.
+  -- -/
+  -- | inherit
+  deriving Inhabited
+
+structure MVarProvenance where
+  kind : MVarProvenanceKind
+  ref  : Syntax
+  deriving Inhabited
+
 /-- The metavariable context is a set of metavariable declarations and their assignments.
 
 For more information on specifics see the comment in the file that `MetavarContext` is defined in.
 -/
 structure MetavarContext where
   /-- Depth is used to control whether an mvar can be assigned in unification. -/
-  depth          : Nat := 0
+  depth            : Nat := 0
   /-- At what depth level mvars can be assigned. -/
   levelAssignDepth : Nat := 0
   /-- Counter for setting the field `index` at `MetavarDecl` -/
-  mvarCounter    : Nat := 0
-  lDepth         : PersistentHashMap LMVarId Nat := {}
+  mvarCounter      : Nat := 0
+  lDepth           : PersistentHashMap LMVarId Nat := {}
   /-- Metavariable declarations. -/
-  decls          : PersistentHashMap MVarId MetavarDecl := {}
+  decls            : PersistentHashMap MVarId MetavarDecl := {}
   /-- Index mapping user-friendly names to ids. -/
-  userNames      : PersistentHashMap Name MVarId := {}
+  userNames        : PersistentHashMap Name MVarId := {}
   /-- Assignment table for universe level metavariables.-/
-  lAssignment    : PersistentHashMap LMVarId Level := {}
+  lAssignment      : PersistentHashMap LMVarId Level := {}
   /-- Assignment table for expression metavariables.-/
-  eAssignment    : PersistentHashMap MVarId Expr := {}
+  eAssignment      : PersistentHashMap MVarId Expr := {}
   /-- Assignment table for delayed abstraction metavariables.
   For more information about delayed abstraction, see the docstring for `DelayedMetavarAssignment`. -/
-  dAssignment    : PersistentHashMap MVarId DelayedMetavarAssignment := {}
+  dAssignment      : PersistentHashMap MVarId DelayedMetavarAssignment := {}
+  /-- Mapping of metavariables to their provenances, for use in hovers and messages. -/
+  provenances  : PersistentHashMap MVarId MVarProvenance := {}
 
 instance : Inhabited MetavarContext := ⟨{}⟩
 
@@ -761,7 +807,8 @@ def addExprMVarDecl (mctx : MetavarContext)
     (localInstances : LocalInstances)
     (type : Expr)
     (kind : MetavarKind := MetavarKind.natural)
-    (numScopeArgs : Nat := 0) : MetavarContext :=
+    (numScopeArgs : Nat := 0)
+    (provenance? : Option MVarProvenance := none) : MetavarContext :=
   { mctx with
     mvarCounter := mctx.mvarCounter + 1
     decls       := mctx.decls.insert mvarId {
@@ -773,11 +820,14 @@ def addExprMVarDecl (mctx : MetavarContext)
       type
       kind
       numScopeArgs }
-    userNames := if userName.isAnonymous then mctx.userNames else mctx.userNames.insert userName mvarId }
+    userNames := if userName.isAnonymous then mctx.userNames else mctx.userNames.insert userName mvarId
+    provenances := if let some provenance := provenance? then
+        mctx.provenances.insert mvarId provenance
+    else mctx.provenances }
 
 def addExprMVarDeclExp (mctx : MetavarContext) (mvarId : MVarId) (userName : Name) (lctx : LocalContext) (localInstances : LocalInstances)
-    (type : Expr) (kind : MetavarKind) : MetavarContext :=
-    addExprMVarDecl mctx mvarId userName lctx localInstances type kind
+    (type : Expr) (kind : MetavarKind) (provenance? : Option MVarProvenance) : MetavarContext :=
+    addExprMVarDecl mctx mvarId userName lctx localInstances type kind (provenance? := provenance?)
 
 /-- Low level API for adding/declaring universe level metavariable declarations.
    It is used to implement actions in the monads `MetaM`, `ElabM` and `TacticM`.
@@ -835,6 +885,12 @@ def setMVarUserNameTemporarily (mctx : MetavarContext) (mvarId : MVarId) (userNa
 def setMVarType (mctx : MetavarContext) (mvarId : MVarId) (type : Expr) : MetavarContext :=
   let decl := mctx.getDecl mvarId
   { mctx with decls := mctx.decls.insert mvarId { decl with type := type } }
+
+def setMVarProvenance (mctx : MetavarContext) (mvarId : MVarId) (provenance : MVarProvenance) : MetavarContext :=
+  { mctx with provenances := mctx.provenances.insert mvarId provenance }
+
+def getMVarProvenance? (mctx : MetavarContext) (mvarId : MVarId) : Option MVarProvenance :=
+  mctx.provenances.find? mvarId
 
 /--
 Modify the local context of a metavariable. If the metavariable is not declared,

@@ -9,6 +9,7 @@ import Lean.Meta.AppBuilder
 import Lean.Meta.CollectMVars
 import Lean.Meta.Coe
 import Lean.Util.CollectLevelMVars
+import Lean.Util.MetavarProvenance
 import Lean.Linter.Deprecated
 import Lean.Elab.Config
 import Lean.Elab.Level
@@ -1146,10 +1147,13 @@ def ensureHasTypeWithErrorMsgs (expectedType? : Option Expr) (e : Expr)
   metavariable is created to represent the type.
 -/
 private def mkSyntheticSorryFor (expectedType? : Option Expr) : TermElabM Expr := do
-  let expectedType ← match expectedType? with
-    | none              => mkFreshTypeMVar
-    | some expectedType => pure expectedType
-  mkLabeledSorry expectedType (synthetic := true) (unique := false)
+  let (expectedType, isFreshMVar) ← match expectedType? with
+    | none              => pure (← mkFreshTypeMVar, true)
+    | some expectedType => pure (expectedType, false)
+  let sry ← mkLabeledSorry expectedType (synthetic := true) (unique := false)
+  if isFreshMVar then
+    setMVarProvenance expectedType.mvarId! (← MVarProvenance.ofKind (.expectedTypeExpr sry))
+  return sry
 
 /--
   Log the given exception, and create a synthetic sorry for representing the failed
@@ -1714,7 +1718,7 @@ def adaptExpander (exp : Syntax → TermElabM Syntax) : TermElab := fun stx expe
   register metavariable as a pending one.
 -/
 def mkInstMVar (type : Expr) (extraErrorMsg? : Option MessageData := none) : TermElabM Expr := do
-  let mvar ← mkFreshExprMVar type MetavarKind.synthetic
+  let mvar ← mkFreshExprMVar type MetavarKind.synthetic (provenance? := some (← MVarProvenance.ofKind (.inst type)))
   let mvarId := mvar.mvarId!
   unless (← synthesizeInstMVarCore mvarId (extraErrorMsg? := extraErrorMsg?)) do
     registerSyntheticMVarWithCurrRef mvarId (.typeClass extraErrorMsg?)
@@ -1760,7 +1764,8 @@ partial def withAutoBoundImplicit (k : TermElabM α) : TermElabM α := do
             | some n =>
               -- Restore state, declare `n`, and try again
               s.restore (restoreInfo := true)
-              withLocalDecl n .implicit (← mkFreshTypeMVar) fun x =>
+              let declTypeMVar ← mkFreshTypeMVar (provenance? := some (← MVarProvenance.ofKind (.expectedTypeStx (mkIdent n))))
+              withLocalDecl n .implicit declTypeMVar fun x =>
                 withReader (fun ctx => { ctx with autoBoundImplicits := ctx.autoBoundImplicits.push x } ) do
                   loop (← saveState)
             | none   => throw ex

@@ -5,6 +5,7 @@ Authors: Kyle Miller
 -/
 prelude
 import Lean.Util.CollectAxioms
+import Lean.Util.MetavarProvenance
 import Lean.Elab.Deriving.Basic
 import Lean.Elab.MutualDef
 
@@ -41,7 +42,7 @@ is a monadic value with the `CommandElabM`, `TermElabM`, or `IO` monads.
 Throws errors if the term is a proof or a type, but lifts props to `Bool` using `mkDecide`.
 -/
 private def elabTermForEval (term : Syntax) (expectedType? : Option Expr) : TermElabM Expr := do
-  let ty ← expectedType?.getDM mkFreshTypeMVar
+  let ty ← expectedType?.getDM (mkFreshTypeMVar (provenance? := some (MVarProvenance.ofKindAt term (.expectedTypeStx term))))
   let e ← Term.elabTermEnsuringType term ty
   synthesizeWithHinting ty
   let e ← instantiateMVars e
