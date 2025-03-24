@@ -16,10 +16,53 @@ import Lean.Meta.Match.MatcherApp.Basic
 
 namespace Lean.Meta.Match
 
+/--
+Throw an error indicating that the alternative at `ref` contains an unexpected number of patterns.
+Remark: we allow `α` to be arbitrary because this error may be thrown before or after elaborating
+pattern syntax.
+-/
+def throwIncorrectNumberOfPatternsAt [ToMessageData α]
+    (ref : Syntax) (discrepancyKind : String) (expected actual : Nat)
+    (pats : List α) (prev? : Option (List α) := none)
+    : MetaM Unit := do
+  let mkMsg (xs : List α) := MessageData.joinSep (xs.map toMessageData) ", "
+  let patternsMsg := mkMsg pats
+  let mut msg := m!"{discrepancyKind} patterns in match alternative: expected {expected}, \
+    but found {actual}:{indentD patternsMsg}"
+  if let some prev := prev? then
+    -- TODO: this should be a distinct `note`
+    let prevMsg := mkMsg prev
+    let patternPlural := if expected == 1 then "pattern" else "patterns"
+    msg := msg ++ m!"\nA preceding alternative contains {expected} {patternPlural}:{indentD prevMsg}"
+  throwErrorAt ref msg
+--TODO: dedup
+def logIncorrectNumberOfPatternsAt [ToMessageData α]
+    (ref : Syntax) (discrepancyKind : String) (expected actual : Nat)
+    (pats : List α) (prev? : Option (List α) := none)
+    : MetaM Unit := do
+  let mkMsg (xs : List α) := MessageData.joinSep (xs.map toMessageData) ", "
+  let patternsMsg := mkMsg pats
+  let mut msg := m!"{discrepancyKind} patterns in match alternative: expected {expected}, \
+    but found {actual}:{indentD patternsMsg}"
+  if let some prev := prev? then
+    -- TODO: this should be a distinct `note`
+    let prevMsg := mkMsg prev
+    let patternPlural := if expected == 1 then "pattern" else "patterns"
+    msg := msg ++ m!"\nA preceding alternative contains {expected} {patternPlural}:{indentD prevMsg}"
+  logErrorAt ref msg
+
 /-- The number of patterns in each AltLHS must be equal to the number of discriminants. -/
 private def checkNumPatterns (numDiscrs : Nat) (lhss : List AltLHS) : MetaM Unit := do
-  if lhss.any fun lhs => lhs.patterns.length != numDiscrs then
-    throwError "incorrect number of patterns"
+  for lhs in lhss do
+    let doThrow (kind : String) := withExistingLocalDecls lhs.fvarDecls do
+      throwIncorrectNumberOfPatternsAt lhs.ref kind numDiscrs lhs.patterns.length
+        (lhs.patterns.map Pattern.toMessageData)
+    if lhs.patterns.length < numDiscrs then
+      doThrow "not enough"
+    else if lhs.patterns.length > numDiscrs then
+      -- This case should be impossible, as an alternative with too many patterns will cause an
+      -- error to be thrown in `Lean.Elab.Term.elabPatterns`
+      doThrow "too many"
 
 /--
   Execute `k hs` where `hs` contains new equalities `h : lhs[i] = rhs[i]` for each `discrInfos[i] = some h`.

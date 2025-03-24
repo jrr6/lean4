@@ -385,7 +385,8 @@ where
         -- User did not provide alternatives using `|`
         setGoals <| (← getGoals) ++ altMVarIds
       else if !altMVarIds.isEmpty then
-        logError m!"alternative '{altName}' has not been provided"
+        -- TODO: double-check `initialInfo` reliability
+        logErrorAt initialInfo.stx m!"alternative '{altName}' has not been provided"
         altMVarIds.forM fun mvarId => admitGoal mvarId
 
   /-- Applies syntactic alternative to alternative goal. -/

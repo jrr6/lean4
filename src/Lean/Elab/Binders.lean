@@ -9,6 +9,9 @@ import Lean.Elab.Term
 import Lean.Elab.BindersUtil
 import Lean.Elab.SyntheticMVars
 import Lean.Elab.PreDefinition.TerminationHint
+import Lean.Parser.Term
+import Lean.PrettyPrinter
+import Lean.Elab.Match
 
 namespace Lean.Elab.Term
 open Meta
@@ -548,6 +551,68 @@ def expandMatchAltsIntoMatch (ref : Syntax) (matchAlts : Syntax) (useExplicit :=
 def expandMatchAltsIntoMatchTactic (ref : Syntax) (matchAlts : Syntax) : MacroM Syntax :=
   withRef ref <| expandMatchAltsIntoMatchAux matchAlts (isTactic := true) (useExplicit := false) (getMatchAltsNumPatterns matchAlts) #[] #[]
 
+private def getMatchAltsOfEquational (stx : Syntax) : Array MatchAltView := Id.run do
+  unless stx.getKind == ``Lean.Parser.Term.matchAlts do
+    return #[]
+  let mkView : Syntax → Option MatchAltView
+    | ref@`(matchAltExpr| | $patterns,* => $rhs) => some { patterns, ref, rhs }
+    | _ => none
+  return stx[0].getArgs.filterMap mkView
+
+private def checkMatchAltPatternCounts (matchAlts : Syntax) (numDiscrs : Nat) (expectedType : Expr)
+    : TermElabM Unit := do
+  let sepPats (pats : List Syntax) := MessageData.joinSep (pats.map toMessageData) ", "
+  let maxDiscrs? ← forallTelescopeReducing expectedType fun xs e =>
+    if e.getAppFn.isMVar then pure none else pure (some xs.size)
+  trace[Elab.definition] m!"{getMatchAltsOfEquational matchAlts |>.map (·.patterns)}"
+  let matchAltViews := getMatchAltsOfEquational matchAlts
+  if let some maxDiscrs := maxDiscrs? then
+    if numDiscrs > maxDiscrs then
+      -- let firstMatchAlt := matchAlts[0][0]
+      -- -- firstMatchAlt[0] is the `|`; index 2 is the `=>`
+      -- let firstMatchPatterns := firstMatchAlt[1]
+
+      let firstMatchAlt := matchAltViews[0]!.ref
+      -- firstMatchAlt[0] is the `|`; index 2 is the `=>`
+      let firstMatchPatterns := firstMatchAlt[1]
+
+      if maxDiscrs == 0 then
+        throwErrorAt firstMatchAlt m!"cannot define a value of type{indentExpr expectedType}\n\
+          by pattern-matching\n\nOnly values of function types can be defined by pattern-matching, \
+          but the type{indentExpr expectedType}\nis not a function type."
+
+      -- MARK: code action mock-up
+      -- patterns are matchAlts[0][0][1]
+      -- TODO: Modularize this so we could use it in the normal `match` code as well
+      let allPats := List.ofFn (n := numDiscrs) fun i => firstMatchAlt[1][0][2 * i.val]
+      let pats := List.ofFn (n := maxDiscrs) fun i => firstMatchAlt[1][0][2 * i.val]
+      let pats ← pats.mapM (PrettyPrinter.ppTerm ⟨·⟩)
+      let pats := pats.map (Format.pretty · 100)
+      -- TODO: rather than intercalating, just get the source range for the valid alts (so we
+      -- preserve the user's existing formatting)
+      let newPats := ", ".intercalate pats
+      let some range := matchAlts[0][0][1].getRange? | throwError "could not get source range"
+      let src := Substring.mk (← getFileMap).source range.start range.stop
+      logInfo m!"replace {src} with {newPats}"
+      -- END: code action mock-up
+
+      -- TODO: last paragraph should be marked as separate note
+      throwErrorAt firstMatchAlt m!"too many patterns in match alternative: \
+        at most {maxDiscrs} expected in a definition of type{indentExpr expectedType}\n\
+        but found {numDiscrs}:{indentD <| sepPats allPats}"
+  -- Catch inconsistencies between pattern counts here, because the `match` elaborator assumes
+  -- that the number of discriminants is absolute and so will misleadingly say that a pattern after
+  -- the first has "too few" or "too many" patterns rather than an "inconsistent" number
+  -- TODO: maybe a way to consolidate this logic with the match elaborator?
+  for view in matchAltViews do
+    let numPats := view.patterns.size
+    if numPats ≠ numDiscrs then
+      let origPats := sepPats matchAltViews[0]!.patterns.toList
+      let pats := sepPats view.patterns.toList
+      throwErrorAt view.ref m!"inconsistent number of patterns in equational definition: this \
+      alternative contains {numPats} patterns{indentD pats}\nbut a preceding alternative \
+      contains {numDiscrs}{indentD origPats}"
+
 /--
   Similar to `expandMatchAltsIntoMatch`, but supports an optional `where` clause.
 
@@ -576,19 +641,21 @@ def expandMatchAltsIntoMatchTactic (ref : Syntax) (matchAlts : Syntax) : MacroM 
     | i, _    => ... f i + g i ...
   ```
 -/
-def expandMatchAltsWhereDecls (matchAltsWhereDecls : Syntax) : MacroM Syntax :=
+def expandMatchAltsWhereDecls (matchAltsWhereDecls : Syntax) (expectedType : Expr) : TermElabM Syntax :=
   let matchAlts     := matchAltsWhereDecls[0]
   -- matchAltsWhereDecls[1] is the termination hints, collected elsewhere
   let whereDeclsOpt := matchAltsWhereDecls[2]
-  let rec loop (i : Nat) (discrs : Array Syntax) : MacroM Syntax :=
+  let rec loop (i : Nat) (discrs : Array Syntax) : TermElabM Syntax :=
     match i with
     | 0   => do
+      checkMatchAltPatternCounts matchAlts discrs.size expectedType
       let matchStx ← `(match $[@$discrs:term],* with $matchAlts:matchAlts)
-      let matchStx ← clearInMatch matchStx discrs
-      if whereDeclsOpt.isNone then
-        return matchStx
-      else
-        expandWhereDeclsOpt whereDeclsOpt matchStx
+      liftMacroM do
+        let matchStx ← clearInMatch matchStx discrs
+        if whereDeclsOpt.isNone then
+          return matchStx
+        else
+          expandWhereDeclsOpt whereDeclsOpt matchStx
     | n+1 => withFreshMacroScope do
       let body ← loop n (discrs.push (← `(x)))
       `(@fun x => $body)
