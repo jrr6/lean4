@@ -57,10 +57,12 @@ private def mkProjAndCheck (structName : Name) (idx : Nat) (e : Expr) : MetaM Ex
       throwError "invalid projection, the expression{indentExpr e}\nis a proposition and has type{indentExpr eType}\nbut the projected value is not, it has type{indentExpr rType}"
   return r
 
+-- TODO: this would also need to get the extra error message somehow
 def synthesizeAppInstMVars (instMVars : Array MVarId) (app : Expr) : TermElabM Unit :=
   for mvarId in instMVars do
-    unless (← synthesizeInstMVarCore mvarId) do
-      registerSyntheticMVarWithCurrRef mvarId (.typeClass none)
+    let ref ← getRef
+    unless (← synthesizeInstMVarCore mvarId (extraErrorMsg? := m!"this was immediately synthesized from {app}\nat {ref.getKind == ``Lean.Parser.Term.binop} {ref}")) do
+      registerSyntheticMVarWithCurrRef mvarId (.typeClass m!"this came from {app}")
       registerMVarErrorImplicitArgInfo mvarId (← getRef) app
 
 /-- Return `some namedArg` if `namedArgs` contains an entry for `binderName`. -/
@@ -148,7 +150,7 @@ structure State where
   /-- Metavariables that we need to set the error context using the application being built. -/
   toSetErrorCtx        : Array MVarId := #[]
   /-- Metavariables for the instance implicit arguments that have already been processed. -/
-  instMVars            : Array MVarId := #[]
+  instMVars            : Array (MVarId × Option MessageData) := #[]
   /--
     The following field is used to implement the `propagateExpectedType` heuristic.
     It is set to `true` true when `expectedType` still has to be propagated.
@@ -163,8 +165,8 @@ structure State where
 abbrev M := ReaderT Context (StateRefT State TermElabM)
 
 /-- Add the given metavariable to the collection of metavariables associated with instance-implicit arguments. -/
-private def addInstMVar (mvarId : MVarId) : M Unit :=
-  modify fun s => { s with instMVars := s.instMVars.push mvarId }
+private def addInstMVar (mvarId : MVarId) (extraErrorMsg? : Option MessageData := none) : M Unit :=
+  modify fun s => { s with instMVars := s.instMVars.push (mvarId, extraErrorMsg?) }
 
 /--
   Try to synthesize metavariables are `instMVars` using type class resolution.
@@ -174,9 +176,9 @@ private def addInstMVar (mvarId : MVarId) : M Unit :=
     - before unifying the expected type.
 -/
 def trySynthesizeAppInstMVars : M Unit := do
-  let instMVars ← (← get).instMVars.filterM fun instMVar => do
+  let instMVars ← (← get).instMVars.filterM fun (instMVar, extraMsg?) => do
     unless (← instantiateMVars (← inferType (.mvar instMVar))).isMVar do try
-      if (← synthesizeInstMVarCore instMVar) then
+      if (← synthesizeInstMVarCore instMVar (extraErrorMsg? := extraMsg?)) then
         return false
       catch _ => pure ()
     return true
@@ -187,7 +189,7 @@ def trySynthesizeAppInstMVars : M Unit := do
   The ones that cannot be synthesized yet are registered.
 -/
 def synthesizeAppInstMVars : M Unit := do
-  Term.synthesizeAppInstMVars (← get).instMVars (← get).f
+  Term.synthesizeAppInstMVars ((← get).instMVars.map (·.1)) (← get).f
   modify ({ · with instMVars := #[] })
 
 /-- fType may become a forallE after we synthesize pending metavariables. -/
@@ -704,7 +706,7 @@ mutual
   where
     mkInstMVar (ty : Expr) : M Expr := do
       let arg ← mkFreshExprMVar ty MetavarKind.synthetic
-      addInstMVar arg.mvarId!
+      addInstMVar arg.mvarId! m!"\nrequired by function {(← get).f}"
       addNewArg argName arg
       return arg
 
@@ -1242,7 +1244,7 @@ private partial def consumeImplicits (stx : Syntax) (e eType : Expr) (hasArgs : 
       registerMVarErrorHoleInfo mvar.mvarId! stx
       consumeImplicits stx (mkApp e mvar) (b.instantiate1 mvar) hasArgs
     else if bi.isInstImplicit then
-      let mvar ← mkInstMVar d
+      let mvar ← mkInstMVar d (extraErrorMsg? := m!"\n\nrequired by the function{indentExpr e}")
       let r := mkApp e mvar
       registerMVarErrorImplicitArgInfo mvar.mvarId! stx r
       consumeImplicits stx r (b.instantiate1 mvar) hasArgs

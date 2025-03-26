@@ -810,7 +810,7 @@ def trySynthInstance (type : Expr) (maxResultSize? : Option Nat := none) : MetaM
     (fun _ => pure LOption.undef)
 
 def throwFailedToSynthesize (type : Expr) : MetaM Expr :=
-  throwError "failed to synthesize{indentExpr type}{useDiagnosticMsg}"
+  throwError "in SynthInstance: failed to synthesize{indentExpr type}{useDiagnosticMsg}"
 
 def synthInstance (type : Expr) (maxResultSize? : Option Nat := none) : MetaM Expr :=
   catchInternalId isDefEqStuckExceptionId
