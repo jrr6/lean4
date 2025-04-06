@@ -66,25 +66,182 @@ export default function ({ suggestions, range, header, isInline, style }) {
   // Choose between an inline 'Try this'-like display and a list-based 'Try these'-like display.
   let inner = null
   if (isInline) {
-    inner = makeSuggestion(suggestions[0])
+    inner = e('div', { className: 'ml1' },
+      e('pre', { className: 'font-code pre-wrap' }, header, makeSuggestion(suggestions[0])))
   } else {
-    inner = e('ul', { style: { paddingInlineStart: '20px' } }, suggestions.map(s =>
-        e('li', { className: 'font-code pre-wrap' }, makeSuggestion(s))))
+    inner = e('div', { className: 'ml1' },
+      e('pre', { className: 'font-code pre-wrap' }, header),
+      e('ul', { style: { paddingInlineStart: '20px' } }, suggestions.map(s =>
+        e('li', { className: 'font-code pre-wrap' }, makeSuggestion(s)))))
   }
-
-  let outer = e('div', { className: 'ml1' },
-    e('pre', { className: 'font-code pre-wrap' }, header), inner)
-
-  // Choose between the 'embedded' display mode for error-message hints and self-contained display
-  // mode for tactic suggestions
-  if (isEmbedded) {
-    return outer
-  } else {
-    return e('details', { open: true },
-      e('summary', { className: 'mv2 pointer' }, 'Suggestions'),
-      outer)
-  }
+  return e('details', { open: true },
+    e('summary', { className: 'mv2 pointer' }, 'Suggestions'),
+    inner)
 }"
+
+/--
+This is a widget for inline suggestions in hint messages. It visually replicates the try-this widget
+but only renders a link to insert a suggestion; all other formatting must be handled by the caller.
+It is intended to be embedded in message data.
+-/
+@[builtin_widget_module] def tryThisEmbeddedWidget : Widget.Module where
+  javascript := "
+import * as React from 'react';
+import { EditorContext, EnvPosContext } from '@leanprover/infoview';
+const e = React.createElement;
+export default function ({ suggestions, range, style }) {
+  const pos = React.useContext(EnvPosContext)
+  const editorConnection = React.useContext(EditorContext)
+  const defStyle = style || {
+    className: 'link pointer dim',
+    style: { color: 'var(--vscode-textLink-foreground)' }
+  }
+  const { suggestion, preInfo, postInfo, style: suggStyle } = suggestions[0]
+  function onClick() {
+    editorConnection.api.applyEdit({
+      changes: { [pos.uri]: [{ range, newText: suggestion }] }
+    })
+  }
+  return [
+    preInfo,
+    e('span', { onClick, title: 'Apply suggestion', ...suggStyle || defStyle }, suggestion),
+    postInfo
+  ]
+}"
+
+/-
+{
+  "diff": [
+    {"type": "unchanged", "text": "h"},
+    {"type": "deletion", "text": "ello"},
+    {"type": "insertion", "text": "i"},
+  ]
+}
+-/
+@[builtin_widget_module] def tryThisDiffWidget : Widget.Module where
+  javascript := "
+import * as React from 'react';
+import { EditorContext, EnvPosContext } from '@leanprover/infoview';
+const e = React.createElement;
+export default function ({ diff, range }) {
+  const pos = React.useContext(EnvPosContext)
+  const editorConnection = React.useContext(EditorContext)
+  const insStyle = { className: 'information' }
+  const delStyle = {
+    style: { color: 'var(--vscode-errorForeground)', textDecoration: 'line-through' }
+  }
+  const defStyle = {
+    style: { color: 'var(--vscode-textLink-foreground)' }
+  }
+  function onClick() {
+    editorConnection.api.applyEdit({
+      changes: { [pos.uri]: [{ range, newText: suggestion }] }
+    })
+  }
+
+  const spans = diff.map (comp =>
+    comp.type === 'deletion' ? e('span', delStyle, comp.text) :
+    comp.type === 'insertion' ? e('span', insStyle, comp.text) :
+      e('span', defStyle, comp.text)
+  )
+  const fullDiff = e('span', { onClick, title: 'Apply suggestion', className: 'link pointer dim font-code', }, spans)
+
+  // return [preInfo, fullDiff, postInfo]
+  return fullDiff
+}"
+
+inductive DiffRange where
+  | insertion (s : Substring)
+  | deletion (s : Substring)
+  | unchanged (s : Substring)
+deriving Repr
+
+def jsonOfDiffRanges (ds : Array DiffRange) :=
+  toJson <| ds.map fun
+    | .insertion s => json% { type: "insertion", text: $s.toString }
+    | .deletion s => json% { type: "deletion", text: $s.toString }
+    | .unchanged s => json% { type: "unchanged", text: $s.toString }
+
+def stringOfDiffRanges (ds : Array DiffRange) : String :=
+  let decorate (s : String) (dec : Char) : String :=
+    .mk <| s.data.foldr (init := []) fun c acc =>
+      c :: dec :: acc
+  let rangeStrs := ds.map fun
+    | .insertion s => decorate s.toString '\u0332'
+    | .deletion s => decorate s.toString '\u0335'
+    | .unchanged s => s.toString
+  rangeStrs.foldl (· ++ ·) ""
+
+def myersDiff (s s' : String) := Id.run do
+  let (n, m) := (s.length, s'.length)
+  let maxSteps := n + m
+  let mut v := Array.replicate (2 * maxSteps + 1) (0 : Nat)
+  let mut vs : Array (Array Nat) := #[]
+
+  let mut (x, y) : Nat × Nat := (0, 0)
+  for d in [:maxSteps + 1] do
+    vs := vs.push v
+    for i in [0 : d + 1] do
+      let k : Int := -d + 2*i
+      if k == -d || (k ≠ d && get! v (k - 1) < get! v (k + 1)) then
+        x := get! (α := Nat) v (k + 1)
+      else
+        x := get! v (k - 1) + 1
+      y := (x - k).toNat
+      while x < n && y < m && s.get ⟨x⟩ == s'.get ⟨y⟩ do
+        (x, y) := (x + 1, y + 1)
+      if x ≥ n && y ≥ m then
+        return mkEdits vs
+      v := set! v k x
+  panic! "diff generation terminated without computing a diff"
+where
+  wrapIdx {α} (v : Array α) (x : Int) :=
+    if x < 0 then (v.size + x).toNat else x.toNat
+  set! {α} [Inhabited α] (v : Array α) (x : Int) (a : α) : Array α :=
+    v.set! (wrapIdx v x) a
+  get! {α} [Inhabited α] (v : Array α) (x : Int) : α :=
+    v[wrapIdx v x]!
+
+  mkEdits (vs : Array (Array Nat)) := Id.run do
+    let mut (x, y) := (s.length, s'.length)
+    let mut result := #[]
+    for i in [:vs.size] do
+      let d := vs.size - i - 1
+      let v := vs[d]!
+      let k := (x : Int) - y
+      let kPrev := if k == -d || (k ≠ d && get! v (k - 1) < get! v (k + 1)) then
+        k + 1
+      else
+        k - 1
+      let xPrev := get! v kPrev
+      let yPrev := (xPrev - kPrev).toNat
+      while x > xPrev && y > yPrev do
+        result := appendEdit result (x - 1) (y - 1) x y
+        (x, y) := (x - 1, y - 1)
+      if d > 0 then
+        result := appendEdit result xPrev yPrev x y
+      (x, y) := (xPrev, yPrev)
+    return result.reverse
+
+  appendEdit (result : Array DiffRange) (x1 y1 x2 y2 : Nat) : Array DiffRange :=
+    -- Attempt to merge this diff with the last added one (recall we are traversing backwards)
+    let merge (newDiff : DiffRange) :=
+      match newDiff, result.back? with
+      | .deletion ⟨s, start, _⟩, some (.deletion ⟨_, _, fin⟩) =>
+        result.set! (result.size - 1) (.deletion ⟨s, start, fin⟩)
+      | .insertion ⟨s, start, _⟩, some (.insertion ⟨_, _, fin⟩) =>
+        result.set! (result.size - 1) (.insertion ⟨s, start, fin⟩)
+      | .unchanged ⟨s, start, _⟩, some (.unchanged ⟨_, _, fin⟩) =>
+        result.set! (result.size - 1) (.unchanged ⟨s, start, fin⟩)
+      | _, _ => result.push newDiff
+    let old : Substring := ⟨s, ⟨x1⟩, ⟨x1 + 1⟩⟩
+    let new : Substring := ⟨s', ⟨y1⟩, ⟨y1 + 1⟩⟩
+    if x1 == x2 then
+      merge (.insertion new)
+    else if y1 == y2 then
+      merge (.deletion old)
+    else
+      merge (.unchanged old)
 
 /-! # Code action -/
 
@@ -293,23 +450,23 @@ instance : Coe SuggestionText Suggestion where
 
 /-! # Widget hooks -/
 
-private structure ProcessedSuggestionData where
+private structure ProcessedSuggestions where
   info : Info
   json : Json
 
-private def mkSuggestionMessages (header : String) (suggestions : Array Suggestion) :=
-  if _ : suggestions.size = 1 then
-    m!"\n{header}{suggestions[0]}\n"
+private def mkSuggestionMessages (header : String) (suggestions : Array Suggestion) (isEmbedded : Bool) :=
+  let sep := if isEmbedded then "" else "\n"
+  let msgs := if _ : suggestions.size = 1 then
+    toMessageData suggestions[0]
   else
-    let msgs := suggestions.map toMessageData
-    let msgs := msgs.foldl (init := MessageData.nil) (fun msg m => msg ++ m!"\n• " ++ .nest 2 m)
-    m!"\n{header}{msgs}\n"
+    suggestions.map toMessageData
+      |>.foldl (init := MessageData.nil) (fun msg m => msg ++ .nest 2 m!"\n• {m}")
+  m!"{sep}{header}{msgs}{sep}"
 
--- TODO: add ability to disable dropdown and header text for inline rendering
-private def processSuggestion (ref : Syntax) (range : String.Range) (suggestions : Array Suggestion)
-    (header : String) (isInline : Bool) (isEmbedded := false)
+private def processSuggestions (ref : Syntax) (range : String.Range) (suggestions : Array Suggestion)
+    (header : String) (isInline : Bool)
     (style? : Option SuggestionStyle := none) (codeActionPrefix? : Option String := none)
-    : CoreM ProcessedSuggestionData := do
+    : CoreM ProcessedSuggestions := do
   let map ← getFileMap
   -- FIXME: this produces incorrect results when `by` is at the beginning of the line, i.e.
   -- replacing `tac` in `by tac`, because the next line will only be 2 space indented
@@ -329,7 +486,6 @@ private def processSuggestion (ref : Syntax) (range : String.Range) (suggestions
     range: $range,
     header: $header,
     isInline: $isInline,
-    isEmbedded: $isEmbedded,
     style: $style?
   }
   return { info, json }
@@ -341,7 +497,7 @@ private def addSuggestionCore (ref : Syntax) (suggestions : Array Suggestion)
     (style? : Option SuggestionStyle := none)
     (codeActionPrefix? : Option String := none) : CoreM Unit := do
   if let some range := (origSpan?.getD ref).getRange? then
-    let { info, json } ← processSuggestion ref range suggestions header isInline (isEmbedded := false) style? codeActionPrefix?
+    let { info, json } ← processSuggestions ref range suggestions header isInline style? codeActionPrefix?
     pushInfoLeaf info
     Widget.savePanelWidgetInfo tryThisWidget.javascriptHash ref (props := return json)
 
@@ -416,19 +572,27 @@ def addSuggestions (ref : Syntax) (suggestions : Array Suggestion)
     (style? : Option SuggestionStyle := none)
     (codeActionPrefix? : Option String := none) : MetaM Unit := do
   if suggestions.isEmpty then throwErrorAt ref "no suggestions available"
-  let msgs := suggestions.map toMessageData
-  let msgs := msgs.foldl (init := MessageData.nil) (fun msg m => msg ++ m!"\n• " ++ .nest 2 m)
-  logInfoAt ref m!"{header}{msgs}"
+  let msgs := mkSuggestionMessages header suggestions (isEmbedded := false)
+  logInfoAt ref msgs
   addSuggestionCore ref suggestions header (isInline := false) origSpan? style? codeActionPrefix?
+
+structure HintSuggestion extends Suggestion where
+  span? : Option Syntax := none
+
+instance : Coe SuggestionText HintSuggestion where
+  coe t := { suggestion := t }
+
+instance : ToMessageData HintSuggestion where
+  toMessageData s := toMessageData s.toSuggestion
 
 structure MessageSuggestions where
   ref : Syntax
-  suggestions : Array Suggestion
+  suggestions : Array HintSuggestion
   codeActionPrefix? : Option String
 
 /--
-Appends a hint `hint` to `msg`. If `ref?` is non-`none` and `suggestions` is nonempty, will also
-append an inline suggestion widget.
+Appends a hint `hint` to `msg`. If `msgSuggs?` is non-`none`, will also append an inline suggestion
+widget.
 -/
 def _root_.Lean.MessageData.appendHint (msg hint : MessageData)
     (msgSuggs? : Option MessageSuggestions := none)
@@ -440,14 +604,55 @@ def _root_.Lean.MessageData.appendHint (msg hint : MessageData)
     let { ref, codeActionPrefix?, suggestions } := msgSuggs
     if let some range := ref.getRange? then
       if suggestions.size > 0 then
-        let { info, json } ← processSuggestion ref range suggestions ""
-          (isEmbedded := true)
-          (isInline := false)
+        -- TODO: we must construct the list of suggestions textually so that message data
+        -- nesting is preserved
+        let { info, .. } ← processSuggestions ref range suggestions ""
+          (isInline := true)
           (codeActionPrefix? := codeActionPrefix?)
         pushInfoLeaf info
-        hintMsg := hintMsg ++ .ofWidget {
-          id := ``tryThisWidget
-          javascriptHash := tryThisWidget.javascriptHash
+
+        let rangeContents := Substring.mk (← getFileMap).source range.start range.stop |>.toString
+        let map ← getFileMap
+        -- FIXME: see original
+        let (indent, column) := getIndentAndColumn map range
+        let suggestions ← suggestions.mapM (·.toJsonAndInfoM (indent := indent) (column := column))
+        let range := map.utf8RangeToLspRange range
+        let diffRanges := myersDiff rangeContents suggestions[0]!.2.1
+        let diff := jsonOfDiffRanges diffRanges
+        let json := json% {
+          diff: $diff,
+          range: $range
+        }
+
+        hintMsg := hintMsg ++ .nestD ("\n" ++ .ofWidget {
+          id := ``tryThisDiffWidget
+          javascriptHash := tryThisDiffWidget.javascriptHash
           props := return json
-        } (mkSuggestionMessages "" suggestions)
+        } (stringOfDiffRanges diffRanges))
+        -- hintMsg := hintMsg ++ .nestD ("\n" ++ .ofWidget {
+        --   id := ``tryThisEmbeddedWidget
+        --   javascriptHash := tryThisEmbeddedWidget.javascriptHash
+        --   props := return json
+        -- } (mkSuggestionMessages header suggestions (isEmbedded := true)))
+
+  -- NO WIDGET
+  -- if let some msgSuggs := msgSuggs? then
+  --   let { ref, codeActionPrefix?, suggestions } := msgSuggs
+  --   if let some range := ref.getRange? then
+  --     if suggestions.size > 0 then
+  --       let map ← getFileMap
+  --       -- FIXME: this produces incorrect results when `by` is at the beginning of the line, i.e.
+  --       -- replacing `tac` in `by tac`, because the next line will only be 2 space indented
+  --       -- (less than `tac` which starts at column 3)
+  --       let (indent, column) := getIndentAndColumn map range
+  --       let suggestions ← suggestions.mapM (·.toJsonAndInfoM (indent := indent) (column := column))
+  --       let suggestionTexts := suggestions.map (·.2)
+  --       let suggestionTexts := suggestionTexts.map (fun (s, s?) => HintSuggestion.mk s (s?.getD "Try this: "))
+  --       let ref := Syntax.ofRange <| ref.getRange?.getD range
+  --       let range := map.utf8RangeToLspRange range
+  --       let info := .ofCustomInfo {
+  --         stx := ref
+  --         value := Dynamic.mk { range, suggestions := suggestionTexts : HintCodeActionInfo }
+  --       }
+  --       pushInfoLeaf info
   return msg ++ hintMsg
