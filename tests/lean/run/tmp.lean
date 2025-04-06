@@ -2,10 +2,99 @@ import Lean
 
 open Lean Meta Tactic TryThis
 elab stx:"foo" : term => do
-  let msg ← MessageData.appendHint m!"this is an error" m!"consider adding stuff"
-    (some { ref := (← getRef), codeActionPrefix? := "add good thing: ", suggestions := #[
-      SuggestionText.string "hello"
-    ] })
-  throwErrorAt stx (msg ++ "here's some more")
+  let sug : MessageSuggestions := {
+    ref := (← getRef)
+    codeActionPrefix? := "add greeting: "
+    suggestions := #[
+      SuggestionText.string "hello",
+      SuggestionText.string "cheers"
+    ]
+  }
+  let msg := m!"your program is insufficiently friendly"
+  let msg ← msg.appendHint m!"consider adding a greeting to your program to make it friendlier" (some sug)
+  throwErrorAt stx (msg ++ "\n\nnote: there are good reasons to do this")
 
+-- TODO: we really need for the hint widget *not* to insert a newline afterward (or de facto
+-- do this by being contained within a div or whatever)
 #eval foo
+run_meta do logInfo <| m!"hi there {mkConst `Nat []}"
+run_meta do logInfo <| MessageData.nest 2 "a\nb\nc\nd" ++ "\nc"
+
+run_meta do
+  Widget.savePanelWidgetInfo tryThisDiffWidget.javascriptHash (← getRef) (props :=
+    return json% {diff : $(jsonOfDiffRanges (myersDiff "👍🏻hello" "awwelo"))})
+
+def myersDiff (s s' : String) := Id.run do
+  let (n, m) := (s.length, s'.length)
+  let maxSteps := n + m
+  let mut v := Array.replicate (2 * maxSteps + 1) (0 : Nat)
+  let mut vs : Array (Array Nat) := #[]
+
+  let mut (x, y) : Nat × Nat := (0, 0)
+  for d in [:maxSteps + 1] do
+    vs := vs.push v
+    for i in [0 : d + 1] do
+      let k : Int := -d + 2*i
+      if k == -d || (k ≠ d && get! v (k - 1) < get! v (k + 1)) then
+        x := get! (α := Nat) v (k + 1)
+      else
+        x := get! v (k - 1) + 1
+      y := (x - k).toNat
+      while x < n && y < m && s.get ⟨x⟩ == s'.get ⟨y⟩ do
+        (x, y) := (x + 1, y + 1)
+      if x ≥ n && y ≥ m then
+        return d
+      v := set! v k x
+  panic! "Diff algorithm did not terminate correctly"
+where
+  wrapIdx {α} (v : Array α) (x : Int) :=
+    if x < 0 then (v.size + x).toNat else x.toNat
+  set! {α} [Inhabited α] (v : Array α) (x : Int) (a : α) : Array α :=
+    v.set! (wrapIdx v x) a
+  get! {α} [Inhabited α] (v : Array α) (x : Int) : α :=
+    v[wrapIdx v x]!
+
+#eval _root_.myersDiff "👍🏻hello" "awwelo"
+def old := "module Diff
+  class Printer
+
+
+    LINE_WIDTH = 4
+
+    def initialize(output: $stdout)
+      @output = output
+      @colors = output.isatty ? COLORS : {}
+    end
+
+    def print(diff)
+      diff.each { |edit| print_edit(edit) }
+    end
+
+    def print_edit(edit)
+    end
+
+  end
+end
+"
+def new := "module Diff
+  class Printer
+
+
+    LINE_WIDTH = 4
+
+    def initialize(output: $stdout)
+      @output = output
+      @colors = output.isatty ? COLORS : {}
+    end
+
+    def print(diff)
+      diff.each { |edit| print_edit(edit) }
+    end
+
+  end
+end"
+#eval TryThis.myersDiff old new
+
+run_meta do
+  Widget.savePanelWidgetInfo tryThisDiffWidget.javascriptHash (← getRef) (props :=
+    return json% {diff : $(jsonOfDiffRanges (myersDiff old new))})
