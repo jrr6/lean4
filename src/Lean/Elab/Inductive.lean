@@ -158,6 +158,43 @@ private def reorderCtorArgs (ctorType : Expr) : MetaM Expr := do
       let binderNames := getArrowBinderNames (← instantiateMVars (← inferType C))
       return replaceArrowBinderNames r binderNames[:bsPrefix.size]
 
+/-- Replaces all free variables in `e` with fresh natural metavariables. -/
+private def replaceFVarsWithFreshMVars (e : Expr) : MetaM Expr :=
+  let go : StateT ((FVarIdMap MVarId)) MetaM Expr :=
+    transform e fun
+      | .fvar fvarId => do
+        if let some mvarId := (← get).find? fvarId then
+          logInfo m!"replacing {fvarId.name} -> {mvarId}"
+          return .done (.mvar mvarId)
+        else
+          let mvarE ← mkFreshExprMVar (← fvarId.getType)
+          modify fun dict => dict.insert fvarId mvarE.mvarId!
+          logInfo m!"replacing {fvarId.name} -> {mvarE.mvarId!.name}"
+          return .done mvarE
+      | _ => return .continue
+  go.run' {}
+
+private partial def replaceBVarsWithFreshMVars (e : Expr) : MetaM Expr :=
+  let rec go (mvars : Array Expr) (e : Expr) : MetaM Expr :=
+    match e with
+    | .lam _ d b _ => do
+      let d' := d.instantiateRev mvars
+      let mvars' := mvars.push (← mkFreshExprMVar d')
+      let b' ← go mvars' (b.instantiateRev mvars')
+      return Expr.updateLambdaE! e d' b'
+    | .forallE _ d b _ => do
+      let d' := d.instantiateRev mvars
+      let mvars' := mvars.push (← mkFreshExprMVar d')
+      let b' ← go mvars' (b.instantiateRev mvars')
+      return Expr.updateForallE! e d' b'
+    | .app f x => return Expr.updateApp! e (← go mvars f) (← go mvars x)
+    | .letE _ t v b _ => return Expr.updateLet! e (← go mvars t) (← go mvars v) (← go mvars b)
+    | .mdata _ b =>  return Expr.updateMData! e (← go mvars b)
+    | .proj _ _ b => return Expr.updateProj! e (← go mvars b)
+    | e => return e
+  go #[] e
+
+
 /--
   Elaborate constructor types.
 
@@ -248,17 +285,23 @@ where
           let arg := args[i]!
           -- TODO: this would be nice, but we need to swap out for `param` anyway
           -- TODO: double check that there's no need to wrap `transform` in `withNewMCTxDepth`
-          -- let arg' ← replaceFVarsWithFreshMVars arg
-          unless (← isDefEq param arg) do
+          let arg' ← replaceBVarsWithFreshMVars arg
+          -- logInfo m!"replacement: {repr arg} -> {repr arg'}"
+          unless (← isDefEq param arg') do
+            -- logInfo m!"{← instantiateMVars arg'} of type {← inferType arg'} is not defeq to {param} of type {← inferType param}"
             let (arg, param) ← addPPExplicitToExposeDiff arg param
-            throwError m!"inductive datatype parameter mismatch in{indentExpr e}\nfound{indentExpr arg}\nbut expected{indentExpr param}\n\
-                        The value of a parameter must be uniform throughout an inductive declaration; \
-                        consider making this parameter an index if it must vary between occurrences in constructor types"
-          args := args.set! i param
+            throwError m!"mismatched parameters to inductive type constructor in{indentExpr e}\nthe argument{indentExpr arg}\nis not definitionally equal to the parameter{indentExpr param}\n\n\
+                        The value of the parameter '{param}' must be the same throughout the inductive declaration. \
+                        Consider making this parameter an index if it must vary between occurrences in constructor types."
+          -- logInfo m!"{← instantiateMVars arg'} IS defeq to {param}"
+          args := args.set! i (← instantiateMVars arg)
         return TransformStep.done (mkAppN f args)
       else
         return .continue
-    transform ctorType (pre := visit)
+    do
+    let e ← transform ctorType (pre := visit)
+    logInfo e
+    return e
 
 @[builtin_inductive_elab Lean.Parser.Command.inductive, builtin_inductive_elab Lean.Parser.Command.classInductive]
 def elabInductiveCommand : InductiveElabDescr where

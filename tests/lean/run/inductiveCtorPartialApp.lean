@@ -33,7 +33,8 @@ found
   Nat
 but expected
   α
-The value of a parameter must be uniform throughout an inductive declaration; consider making this parameter an index if it must vary between occurrences in constructor types
+
+The value of a parameter must be the same throughout an inductive declaration; consider making this parameter an index if it must vary between occurrences in constructor types
 -/
 #guard_msgs in
 inductive Bad (α : Type) : Prop

@@ -8,6 +8,9 @@ inductive Foo1 (F : {n : Nat} → Type) : Type where
 inductive Foo2 (F : {n : Nat} → Type) : Type where
 | bar : Foo2 F
 
+inductive Many (H : Type) (F : {n : Nat} → Type) (G : {_ : Type} → Type) : Type where
+| bar : Many H F G
+
 /-- info: @Foo2.bar : {F : {n : Nat} → Type} → Foo2 F -/
 #guard_msgs in
 #check @Foo2.bar
