@@ -1,13 +1,13 @@
 import Lean
 
 open Lean Meta Tactic TryThis
-elab stx:"foo" : term => do
-  let sug : MessageSuggestions := {
-    ref := (← getRef)
+elab "foo" stx:"bar" "baz" : term => do
+  let sug : HintSuggestions := {
+    ref := stx
     codeActionPrefix? := "add greeting: "
     suggestions := #[
-      SuggestionText.string "hello",
-      SuggestionText.string "cheers"
+      { suggestion := SuggestionText.string "hello", preInfo? := "general: " },
+      { suggestion := SuggestionText.string "cheers", postInfo? := " if you're feeling British"}
     ]
   }
   let msg := m!"your program is insufficiently friendly"
@@ -16,13 +16,13 @@ elab stx:"foo" : term => do
 
 -- TODO: we really need for the hint widget *not* to insert a newline afterward (or de facto
 -- do this by being contained within a div or whatever)
-#eval foo
-run_meta do logInfo <| m!"hi there {mkConst `Nat []}"
-run_meta do logInfo <| MessageData.nest 2 "a\nb\nc\nd" ++ "\nc"
+#eval foo bar baz
+
+def split (s : String) := s.toList.map (String.mk ∘ ([·])) |>.toArray
 
 run_meta do
   Widget.savePanelWidgetInfo tryThisDiffWidget.javascriptHash (← getRef) (props :=
-    return json% {diff : $(jsonOfDiffRanges (myersDiff "👍🏻hello" "awwelo"))})
+    return json% {diff : $(jsonOfDiffRanges (diff (split "👍🏻hello") (split "awwelo")))})
 
 def myersDiff (s s' : String) := Id.run do
   let (n, m) := (s.length, s'.length)
@@ -94,6 +94,8 @@ def new := "module Diff
   end
 end"
 #eval TryThis.myersDiff old new
+
+run_meta do logInfo old
 
 run_meta do
   Widget.savePanelWidgetInfo tryThisDiffWidget.javascriptHash (← getRef) (props :=
