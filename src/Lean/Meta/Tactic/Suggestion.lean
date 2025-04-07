@@ -123,7 +123,7 @@ export default function ({ suggestions, range, style }) {
 import * as React from 'react';
 import { EditorContext, EnvPosContext } from '@leanprover/infoview';
 const e = React.createElement;
-export default function ({ diff, range }) {
+export default function ({ diff, range, suggestion }) {
   const pos = React.useContext(EnvPosContext)
   const editorConnection = React.useContext(EditorContext)
   const insStyle = { className: 'information' }
@@ -145,50 +145,59 @@ export default function ({ diff, range }) {
       e('span', defStyle, comp.text)
   )
   const fullDiff = e('span', { onClick, title: 'Apply suggestion', className: 'link pointer dim font-code', }, spans)
-
-  // return [preInfo, fullDiff, postInfo]
   return fullDiff
 }"
 
 inductive DiffRange where
-  | insertion (s : Substring)
-  | deletion (s : Substring)
-  | unchanged (s : Substring)
+  | insertion (s : String)
+  | deletion (s : String)
+  | unchanged (s : String)
 deriving Repr
 
 def jsonOfDiffRanges (ds : Array DiffRange) :=
   toJson <| ds.map fun
-    | .insertion s => json% { type: "insertion", text: $s.toString }
-    | .deletion s => json% { type: "deletion", text: $s.toString }
-    | .unchanged s => json% { type: "unchanged", text: $s.toString }
+    | .insertion s => json% { type: "insertion", text: $s }
+    | .deletion s => json% { type: "deletion", text: $s }
+    | .unchanged s => json% { type: "unchanged", text: $s }
 
 def stringOfDiffRanges (ds : Array DiffRange) : String :=
   let decorate (s : String) (dec : Char) : String :=
     .mk <| s.data.foldr (init := []) fun c acc =>
       c :: dec :: acc
   let rangeStrs := ds.map fun
-    | .insertion s => decorate s.toString '\u0332'
-    | .deletion s => decorate s.toString '\u0335'
-    | .unchanged s => s.toString
+    | .insertion s => decorate s '\u0332'
+    | .deletion s => decorate s '\u0335'
+    | .unchanged s => s
   rangeStrs.foldl (· ++ ·) ""
 
-def myersDiff (s s' : String) := Id.run do
-  let (n, m) := (s.length, s'.length)
+-- FIXME: Figure out why the panic fires even when this isn't even called when running `tmp.lean`
+/--
+Computes a diff of the partitioned strings `s` and `s'` using Myers' algorithm.
+
+`s` and `s'` should contain a partitioning of the desired strings into the minimal unit at which a
+diff will be computed (e.g., character, word, line). The returned diff is an array of edits that
+yield `s'` from `s`. Note that unchanged segments are included in this diff (see `DiffRange`).
+Note also that this function is only intended for use on small strings of the kind that would be
+shown in a code-action suggestion, as we implement a simple, unoptimized version of Myers' algorithm
+(see https://doi.org/10.1007/BF01840446).
+-/
+def diff (s s' : Array String) := Id.run do
+  let (n, m) := (s.size, s'.size)
   let maxSteps := n + m
   let mut v := Array.replicate (2 * maxSteps + 1) (0 : Nat)
   let mut vs : Array (Array Nat) := #[]
-
   let mut (x, y) : Nat × Nat := (0, 0)
+
   for d in [:maxSteps + 1] do
     vs := vs.push v
     for i in [0 : d + 1] do
       let k : Int := -d + 2*i
       if k == -d || (k ≠ d && get! v (k - 1) < get! v (k + 1)) then
-        x := get! (α := Nat) v (k + 1)
+        x := get! v (k + 1)
       else
         x := get! v (k - 1) + 1
       y := (x - k).toNat
-      while x < n && y < m && s.get ⟨x⟩ == s'.get ⟨y⟩ do
+      while x < n && y < m && s[x]! == s'[y]! do
         (x, y) := (x + 1, y + 1)
       if x ≥ n && y ≥ m then
         return mkEdits vs
@@ -203,7 +212,7 @@ where
     v[wrapIdx v x]!
 
   mkEdits (vs : Array (Array Nat)) := Id.run do
-    let mut (x, y) := (s.length, s'.length)
+    let mut (x, y) := (s.size, s'.size)
     let mut result := #[]
     for i in [:vs.size] do
       let d := vs.size - i - 1
@@ -227,20 +236,21 @@ where
     -- Attempt to merge this diff with the last added one (recall we are traversing backwards)
     let merge (newDiff : DiffRange) :=
       match newDiff, result.back? with
-      | .deletion ⟨s, start, _⟩, some (.deletion ⟨_, _, fin⟩) =>
-        result.set! (result.size - 1) (.deletion ⟨s, start, fin⟩)
-      | .insertion ⟨s, start, _⟩, some (.insertion ⟨_, _, fin⟩) =>
-        result.set! (result.size - 1) (.insertion ⟨s, start, fin⟩)
-      | .unchanged ⟨s, start, _⟩, some (.unchanged ⟨_, _, fin⟩) =>
-        result.set! (result.size - 1) (.unchanged ⟨s, start, fin⟩)
+      | .deletion d, some (.deletion d') =>
+        result.set! (result.size - 1) (.deletion (d ++ d'))
+      | .insertion i, some (.insertion i') =>
+        result.set! (result.size - 1) (.insertion (i ++ i'))
+      | .unchanged u, some (.unchanged u') =>
+        result.set! (result.size - 1) (.unchanged (u ++ u'))
       | _, _ => result.push newDiff
-    let old : Substring := ⟨s, ⟨x1⟩, ⟨x1 + 1⟩⟩
-    let new : Substring := ⟨s', ⟨y1⟩, ⟨y1 + 1⟩⟩
     if x1 == x2 then
+      let new := s'[y1]!
       merge (.insertion new)
     else if y1 == y2 then
+      let old := s[x1]!
       merge (.deletion old)
     else
+      let old := s[x1]!
       merge (.unchanged old)
 
 /-! # Code action -/
@@ -451,8 +461,9 @@ instance : Coe SuggestionText Suggestion where
 /-! # Widget hooks -/
 
 private structure ProcessedSuggestions where
+  suggestions : Array (Json × String × Option String)
   info : Info
-  json : Json
+  range : Lsp.Range
 
 private def mkSuggestionMessages (header : String) (suggestions : Array Suggestion) (isEmbedded : Bool) :=
   let sep := if isEmbedded then "" else "\n"
@@ -464,9 +475,7 @@ private def mkSuggestionMessages (header : String) (suggestions : Array Suggesti
   m!"{sep}{header}{msgs}{sep}"
 
 private def processSuggestions (ref : Syntax) (range : String.Range) (suggestions : Array Suggestion)
-    (header : String) (isInline : Bool)
-    (style? : Option SuggestionStyle := none) (codeActionPrefix? : Option String := none)
-    : CoreM ProcessedSuggestions := do
+    (codeActionPrefix? : Option String) : CoreM ProcessedSuggestions := do
   let map ← getFileMap
   -- FIXME: this produces incorrect results when `by` is at the beginning of the line, i.e.
   -- replacing `tac` in `by tac`, because the next line will only be 2 space indented
@@ -474,21 +483,13 @@ private def processSuggestions (ref : Syntax) (range : String.Range) (suggestion
   let (indent, column) := getIndentAndColumn map range
   let suggestions ← suggestions.mapM (·.toJsonAndInfoM (indent := indent) (column := column))
   let suggestionTexts := suggestions.map (·.2)
-  let suggestions := suggestions.map (·.1)
   let ref := Syntax.ofRange <| ref.getRange?.getD range
   let range := map.utf8RangeToLspRange range
   let info := .ofCustomInfo {
     stx := ref
     value := Dynamic.mk { range, suggestionTexts, codeActionPrefix? : TryThisInfo }
   }
-  let json := json% {
-    suggestions: $suggestions,
-    range: $range,
-    header: $header,
-    isInline: $isInline,
-    style: $style?
-  }
-  return { info, json }
+  return { info, suggestions, range }
 
 /-- Core of `addSuggestion` and `addSuggestions`. Whether we use an inline display for a single
 element or a list display is controlled by `isInline`. -/
@@ -497,7 +498,15 @@ private def addSuggestionCore (ref : Syntax) (suggestions : Array Suggestion)
     (style? : Option SuggestionStyle := none)
     (codeActionPrefix? : Option String := none) : CoreM Unit := do
   if let some range := (origSpan?.getD ref).getRange? then
-    let { info, json } ← processSuggestions ref range suggestions header isInline style? codeActionPrefix?
+    let { suggestions, info, range } ← processSuggestions ref range suggestions codeActionPrefix?
+    let suggestions := suggestions.map (·.1)
+    let json := json% {
+      suggestions: $suggestions,
+      range: $range,
+      header: $header,
+      isInline: $isInline,
+      style: $style?
+    }
     pushInfoLeaf info
     Widget.savePanelWidgetInfo tryThisWidget.javascriptHash ref (props := return json)
 
@@ -585,55 +594,58 @@ instance : Coe SuggestionText HintSuggestion where
 instance : ToMessageData HintSuggestion where
   toMessageData s := toMessageData s.toSuggestion
 
-structure MessageSuggestions where
+structure HintSuggestions where
   ref : Syntax
   suggestions : Array HintSuggestion
   codeActionPrefix? : Option String
 
 /--
-Appends a hint `hint` to `msg`. If `msgSuggs?` is non-`none`, will also append an inline suggestion
-widget.
+Appends a hint `hint` to `msg`. If `suggestions?` is non-`none`, will also append an inline
+suggestion widget.
 -/
 def _root_.Lean.MessageData.appendHint (msg hint : MessageData)
-    (msgSuggs? : Option MessageSuggestions := none)
+    (suggestions? : Option HintSuggestions := none)
     : CoreM MessageData := do
   let mut hintMsg := m!"\n\nhint: {hint}"
   -- In the future, we may wish to be able to direct users to relevant syntax (e.g., via a "jump to
   -- location" link without an associated suggestion)
-  if let some msgSuggs := msgSuggs? then
+  if let some msgSuggs := suggestions? then
     let { ref, codeActionPrefix?, suggestions } := msgSuggs
-    if let some range := ref.getRange? then
-      if suggestions.size > 0 then
-        -- TODO: we must construct the list of suggestions textually so that message data
-        -- nesting is preserved
-        let { info, .. } ← processSuggestions ref range suggestions ""
-          (isInline := true)
-          (codeActionPrefix? := codeActionPrefix?)
-        pushInfoLeaf info
+    if suggestions.size > 0 then
+      for suggestion in suggestions do
+        if let some range := (suggestion.span?.getD ref).getRange? then
+          let { info, suggestions := suggestionArr, range := lspRange } ← processSuggestions ref range
+            #[suggestion.toSuggestion] codeActionPrefix?
+          pushInfoLeaf info
+          let map ← getFileMap
+          let rangeContents := Substring.mk map.source range.start range.stop |>.toString
+          let suggestionText := suggestionArr[0]!.2.1
+          let split (s : String) := s.toList.map (String.mk ∘ ([·])) |>.toArray
+          let diffRanges := diff (split rangeContents) (split suggestionText)
+          let diff := jsonOfDiffRanges diffRanges
+          let preInfo := suggestion.preInfo?.getD ""
+          let postInfo := suggestion.postInfo?.getD ""
+          let json := json% {
+            diff: $diff,
+            suggestion: $suggestionText,
+            range: $lspRange
+          }
 
-        let rangeContents := Substring.mk (← getFileMap).source range.start range.stop |>.toString
-        let map ← getFileMap
-        -- FIXME: see original
-        let (indent, column) := getIndentAndColumn map range
-        let suggestions ← suggestions.mapM (·.toJsonAndInfoM (indent := indent) (column := column))
-        let range := map.utf8RangeToLspRange range
-        let diffRanges := myersDiff rangeContents suggestions[0]!.2.1
-        let diff := jsonOfDiffRanges diffRanges
-        let json := json% {
-          diff: $diff,
-          range: $range
-        }
+          let widget := MessageData.ofWidget {
+              id := ``tryThisDiffWidget
+              javascriptHash := tryThisDiffWidget.javascriptHash
+              props := return json
+            } (stringOfDiffRanges diffRanges)
+          let widgetMsg := m!"{preInfo}{widget}{postInfo}"
+          let msg := if suggestions.size == 1 then m!"\n{widgetMsg}" else m!"\n• {widgetMsg}"
+          hintMsg := hintMsg ++ .nestD msg
+  return msg ++ hintMsg
 
-        hintMsg := hintMsg ++ .nestD ("\n" ++ .ofWidget {
-          id := ``tryThisDiffWidget
-          javascriptHash := tryThisDiffWidget.javascriptHash
-          props := return json
-        } (stringOfDiffRanges diffRanges))
-        -- hintMsg := hintMsg ++ .nestD ("\n" ++ .ofWidget {
-        --   id := ``tryThisEmbeddedWidget
-        --   javascriptHash := tryThisEmbeddedWidget.javascriptHash
-        --   props := return json
-        -- } (mkSuggestionMessages header suggestions (isEmbedded := true)))
+      -- hintMsg := hintMsg ++ .nestD ("\n" ++ .ofWidget {
+      --   id := ``tryThisEmbeddedWidget
+      --   javascriptHash := tryThisEmbeddedWidget.javascriptHash
+      --   props := return json
+      -- } (mkSuggestionMessages header suggestions (isEmbedded := true)))
 
   -- NO WIDGET
   -- if let some msgSuggs := msgSuggs? then
@@ -655,4 +667,3 @@ def _root_.Lean.MessageData.appendHint (msg hint : MessageData)
   --         value := Dynamic.mk { range, suggestions := suggestionTexts : HintCodeActionInfo }
   --       }
   --       pushInfoLeaf info
-  return msg ++ hintMsg
