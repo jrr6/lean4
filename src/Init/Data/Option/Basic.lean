@@ -132,9 +132,9 @@ Examples:
 Checks whether an optional value either satisfies a Boolean predicate or is `none`.
 
 Examples:
- * `(some 33).all (· % 2 == 0) = false
- * `(some 22).all (· % 2 == 0) = true
- * `none.all (fun x : Nat => x % 2 == 0) = true
+ * `(some 33).all (· % 2 == 0) = false`
+ * `(some 22).all (· % 2 == 0) = true`
+ * `none.all (fun x : Nat => x % 2 == 0) = true`
 -/
 @[always_inline, inline] protected def all (p : α → Bool) : Option α → Bool
   | some a => p a
@@ -144,9 +144,9 @@ Examples:
 Checks whether an optional value is not `none` and satisfies a Boolean predicate.
 
 Examples:
- * `(some 33).any (· % 2 == 0) = false
- * `(some 22).any (· % 2 == 0) = true
- * `none.any (fun x : Nat => true) = false
+ * `(some 33).any (· % 2 == 0) = false`
+ * `(some 22).any (· % 2 == 0) = true`
+ * `none.any (fun x : Nat => true) = false`
 -/
 @[always_inline, inline] protected def any (p : α → Bool) : Option α → Bool
   | some a => p a
