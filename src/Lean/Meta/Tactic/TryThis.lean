@@ -86,6 +86,7 @@ export default function ({ suggestions, range, header, isInline, style }) {
     inner)
 }"
 
+-- Because we can't reference `builtin_widget_module` in `Lean.Meta.Hint`, we add the attribute here
 attribute [builtin_widget_module] Hint.tryThisDiffWidget
 
 /-! # Code action -/
@@ -179,7 +180,22 @@ def Suggestion.toJsonAndInfoM (s : Suggestion) (w : Option Nat := none) (indent 
   if let some style := s.style? then json := ("style", toJson style) :: json
   return (Json.mkObj json, text, s.toCodeActionTitle?.map (· text))
 
-@[export lean_meta_tactic_trythis_process_suggestions]
+/--
+Represents processed data for a collection of suggestions that can be passed to a widget and
+pushed in an info leaf.
+
+It contains the following data:
+* `info`: the `TryThisInfo` data corresponding to a collection of suggestions
+* `suggestions`: elements of the form `(j, t, p)` where `j` is JSON containing a suggestion and its
+  pre- and post-info, `t` is the text to be inserteed by the suggestion, and `p` is the code action
+  prefix thereof.
+* `range`: the range at which the suggestion is to be applied.
+-/
+structure ProcessedSuggestions where
+  suggestions : Array (Json × String × Option String)
+  info : Elab.Info
+  range : Lsp.Range
+
 def processSuggestions (ref : Syntax) (range : String.Range) (suggestions : Array Suggestion)
     (codeActionPrefix? : Option String) : CoreM ProcessedSuggestions := do
   let map ← getFileMap
@@ -196,6 +212,13 @@ def processSuggestions (ref : Syntax) (range : String.Range) (suggestions : Arra
     value := Dynamic.mk { range, suggestionTexts, codeActionPrefix? : TryThisInfo }
   }
   return { info, suggestions, range }
+
+@[export lean_meta_tactic_try_this_process_suggestions_pushing_info]
+def processSuggestionsPushingInfo (ref : Syntax) (range : String.Range) (suggestions : Array Suggestion)
+    (codeActionPrefix? : Option String) : CoreM (Array String × Lsp.Range) := do
+  let { info, suggestions, range } ← processSuggestions ref range suggestions codeActionPrefix?
+  pushInfoLeaf info
+  return (suggestions.map (·.2.1), range)
 
 /-- Delaborate `e` into syntax suitable for use by `refine`. -/
 def delabToRefinableSyntax (e : Expr) : MetaM Term :=
