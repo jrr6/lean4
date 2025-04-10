@@ -1,18 +1,18 @@
 import Lean
 
-open Lean Meta Hint Tactic TryThis
+open Lean Meta Hint Tactic
 elab foo:"foo" stx:"bar" "baz" : term => do
-  let sug : HintSuggestions := {
+  let sug : Suggestions := {
     ref := stx
     codeActionPrefix? := "add greeting: "
     suggestions := #[
-      { suggestion := SuggestionText.string "hello", preInfo? := "general: ", span? := foo },
-      { suggestion := SuggestionText.string "cheers", postInfo? := " if you're feeling British", span? := stx }
+      { suggestion := .string "hello", preInfo? := "general: ", span? := foo },
+      { suggestion := .string "cheers", postInfo? := " if you're feeling British", span? := stx }
     ]
   }
   let msg := m!"your program is insufficiently friendly"
   let msg := msg ++ (← MessageData.hint m!"consider adding a greeting to your program to make it friendlier" sug)
-  throwErrorAt stx (msg ++ "\n\nnote: there are good reasons to do this")
+  throwErrorAt stx (msg ++ .note "there are good reasons to do this")
 
 #eval foo bar baz
 
