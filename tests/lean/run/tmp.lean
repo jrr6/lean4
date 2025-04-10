@@ -21,3 +21,8 @@ def split (s : String) := s.toList.toArray
 run_meta do
   Widget.savePanelWidgetInfo tryThisDiffWidget.javascriptHash (← getRef) (props :=
     return json% {diff : $(mkDiffJson (Diff.diff (split "👍🏻hello") (split "awwelo")))})
+
+namespace bah.bar.beat
+end foob
+section
+namespace bat
