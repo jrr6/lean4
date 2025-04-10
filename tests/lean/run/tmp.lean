@@ -20,7 +20,7 @@ def split (s : String) := s.toList.map (String.mk ∘ ([·])) |>.toArray
 
 run_meta do
   Widget.savePanelWidgetInfo tryThisDiffWidget.javascriptHash (← getRef) (props :=
-    return json% {diff : $(mkDiffJson (diff (split "👍🏻hello") (split "awwelo")))})
+    return json% {diff : $(mkDiffJson (Diff.diff (split "👍🏻hello") (split "awwelo")))})
 
 -- def myersDiff (s s' : String) := Id.run do
 --   let (n, m) := (s.length, s'.length)

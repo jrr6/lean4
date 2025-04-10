@@ -158,19 +158,3 @@ instance : ToMessageData Suggestion where
 
 instance : Coe SuggestionText Suggestion where
   coe t := { suggestion := t }
-
-/--
-Represents processed data for a collection of suggestions that can be passed to a widget and
-pushed in an info leaf.
-
-It contains the following data:
-* `info`: the `TryThisInfo` data corresponding to a collection of suggestions
-* `suggestions`: elements of the form `(j, t, p)` where `j` is JSON containing a suggestion and its
-  pre- and post-info, `t` is the text to be inserteed by the suggestion, and `p` is the code action
-  prefix thereof.
-* `range`: the range at which the suggestion is to be applied.
--/
-structure ProcessedSuggestions where
-  suggestions : Array (Json × String × Option String)
-  info : Elab.Info
-  range : Lsp.Range
