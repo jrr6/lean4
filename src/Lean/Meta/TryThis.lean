@@ -4,19 +4,25 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Gabriel Ebner, Mario Carneiro, Thomas Murrills
 -/
 prelude
+import Lean.CoreM
 import Lean.Message
 import Lean.Elab.InfoTree.Types
 import Lean.Data.Lsp.Basic
+import Lean.PrettyPrinter
 
 /-!
 # "Try this" data types
 
 This defines the data types used in constructing "try this" widgets for suggestion-providing tactics
-and inline error-message hints.
+and inline error-message hints, as well as basic infrastructure for generating info trees and
+widget content therefrom.
 -/
+
 namespace Lean.Meta.Tactic.TryThis
 
-/-! # Code action -/
+open PrettyPrinter
+
+/-! # Code action information -/
 
 /-- A packet of information about a "Try this" suggestion
 that we store in the infotree for the associated code action to retrieve. -/
@@ -140,7 +146,10 @@ structure Suggestion where
   * a variable color: `.value (t : Float)`, which draws from a red-yellow-green gradient, with red
   at `0.0` and green at `1.0`.
 
-  See `SuggestionStyle` for details. -/
+  See `SuggestionStyle` for details.
+
+  Note that this property is used only by the "try this" widget; it is ignored by the inline hint
+  widget. -/
   style? : Option SuggestionStyle := none
   /-- How to represent the suggestion as `MessageData`. This is used only in the info diagnostic.
   If `none`, we use `suggestion`. Use `toMessageData` to render a `Suggestion` in this manner. -/
@@ -158,3 +167,98 @@ instance : ToMessageData Suggestion where
 
 instance : Coe SuggestionText Suggestion where
   coe t := { suggestion := t }
+
+/-! # Formatting -/
+
+/-- Yields `(indent, column)` given a `FileMap` and a `String.Range`, where `indent` is the number
+of spaces by which the line that first includes `range` is initially indented, and `column` is the
+column `range` starts at in that line. -/
+def getIndentAndColumn (map : FileMap) (range : String.Range) : Nat × Nat :=
+  let start := map.source.findLineStart range.start
+  let body := map.source.findAux (· ≠ ' ') range.start start
+  ((body - start).1, (range.start - start).1)
+
+/--
+An option allowing the user to customize the ideal input width. Defaults to 100.
+This option controls output format when
+the output is intended to be copied back into a lean file -/
+register_builtin_option format.inputWidth : Nat := {
+  /- The default maximum width of an ideal line in source code. -/
+  defValue := 100
+  descr := "ideal input width"
+}
+
+/-- Get the input width specified in the options -/
+def getInputWidth (o : Options) : Nat := format.inputWidth.get o
+
+namespace SuggestionText
+
+/-- Pretty-prints a `SuggestionText` as a `Format`. If the `SuggestionText` is some `TSyntax kind`,
+we use the appropriate pretty-printer; strings are coerced to `Format`s as-is. -/
+def pretty : SuggestionText → CoreM Format
+  | .tsyntax (kind := kind) stx => ppCategory kind stx
+  | .string text => return text
+
+/- Note that this is essentially `return (← s.pretty).prettyExtra w indent column`, but we
+special-case strings to avoid converting them to `Format`s and back, which adds indentation after each newline. -/
+/-- Pretty-prints a `SuggestionText` as a `String` and wraps with respect to the pane width,
+indentation, and column, via `Format.prettyExtra`. If `w := none`, then
+`w := getInputWidth (← getOptions)` is used. Raw `String`s are returned as-is. -/
+def prettyExtra (s : SuggestionText) (w : Option Nat := none)
+    (indent column : Nat := 0) : CoreM String :=
+  match s with
+  | .tsyntax (kind := kind) stx => do
+    let w ← match w with | none => do pure <| getInputWidth (← getOptions) | some n => pure n
+    return (← ppCategory kind stx).pretty w indent column
+  | .string text => return text
+
+end SuggestionText
+
+/-- Converts a `Suggestion` to `Json` in `CoreM`. We need `CoreM` in order to pretty-print syntax.
+
+This also returns a `String × Option String` consisting of the pretty-printed text and any custom
+code action title if `toCodeActionTitle?` is provided.
+
+If `w := none`, then `w := getInputWidth (← getOptions)` is used.
+-/
+def Suggestion.toJsonAndInfoM (s : Suggestion) (w : Option Nat := none) (indent column : Nat := 0) :
+    CoreM (Json × String × Option String) := do
+  let text ← s.suggestion.prettyExtra w indent column
+  let mut json := [("suggestion", (text : Json))]
+  if let some preInfo := s.preInfo? then json := ("preInfo", preInfo) :: json
+  if let some postInfo := s.postInfo? then json := ("postInfo", postInfo) :: json
+  if let some style := s.style? then json := ("style", toJson style) :: json
+  return (Json.mkObj json, text, s.toCodeActionTitle?.map (· text))
+
+/--
+Represents processed data for a collection of suggestions that can be passed to a widget and pushed
+in an info leaf.
+
+It contains the following data:
+* `info`: the `TryThisInfo` data corresponding to a collection of suggestions
+* `suggestions`: elements of the form `(j, t, p)` where `j` is JSON containing a suggestion and its
+  pre- and post-info, `t` is the text to be inserteed by the suggestion, and `p` is the code action
+  prefix thereof.
+* `range`: the range at which the suggestion is to be applied.
+-/
+structure ProcessedSuggestions where
+  suggestions : Array (Json × String × Option String)
+  info : Elab.Info
+  range : Lsp.Range
+
+def processSuggestions (ref : Syntax) (range : String.Range) (suggestions : Array Suggestion)
+    (codeActionPrefix? : Option String) : CoreM ProcessedSuggestions := do
+  let map ← getFileMap
+  -- FIXME: this produces incorrect results when `by` is at the beginning of the line, i.e.
+  -- replacing `tac` in `by tac`, because the next line will only be 2 space indented
+  -- (less than `tac` which starts at column 3)
+  let (indent, column) := getIndentAndColumn map range
+  let suggestions ← suggestions.mapM (·.toJsonAndInfoM (indent := indent) (column := column))
+  let suggestionTexts := suggestions.map (·.2)
+  let ref := Syntax.ofRange <| ref.getRange?.getD range
+  let range := map.utf8RangeToLspRange range
+  let info := .ofCustomInfo {
+    stx := ref
+    value := Dynamic.mk { range, suggestionTexts, codeActionPrefix? : TryThisInfo }
+  }
+  return { info, suggestions, range }
