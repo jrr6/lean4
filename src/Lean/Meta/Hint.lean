@@ -16,7 +16,7 @@ import Lean.PrettyPrinter
 
 namespace Lean.Meta.Hint
 
-open Elab Tactic TryThis PrettyPrinter
+open Elab Tactic PrettyPrinter TryThis
 
 /--
 A widget for rendering code-action suggestions in error messages. Generally, this widget should not
@@ -87,25 +87,27 @@ def mkDiffString (ds : Array (Diff.Action × Char)) : String :=
     | (.skip  , s) => String.mk [s]
   rangeStrs.foldl (· ++ ·) ""
 
-structure HintSuggestion extends Suggestion where
+structure Suggestion extends TryThis.Suggestion where
   span? : Option Syntax := none
 
-instance : Coe SuggestionText HintSuggestion where
+abbrev SuggestionText := TryThis.SuggestionText
+
+instance : Coe SuggestionText Suggestion where
   coe t := { suggestion := t }
 
-instance : ToMessageData HintSuggestion where
+instance : ToMessageData Suggestion where
   toMessageData s := toMessageData s.toSuggestion
 
-structure HintSuggestions where
+structure Suggestions where
   ref : Syntax
-  suggestions : Array HintSuggestion
+  suggestions : Array Suggestion
   codeActionPrefix? : Option String := none
 
 /--
 Creates message data corresponding to a `HintSuggestions` collection and adds the corresponding info
 leaf.
 -/
-def HintSuggestions.toHintMessage (suggestions : HintSuggestions) : CoreM MessageData := do
+def Suggestions.toHintMessage (suggestions : Suggestions) : CoreM MessageData := do
   let { ref, codeActionPrefix?, suggestions } := suggestions
   let mut msg := m!""
   if suggestions.size > 0 then
@@ -137,16 +139,13 @@ def HintSuggestions.toHintMessage (suggestions : HintSuggestions) : CoreM Messag
         msg := msg ++ MessageData.nestD suggestionMsg
   return msg
 
-end Meta.Hint
-
-open Meta.Hint in
 /--
 Appends a hint `hint` to `msg`. If `suggestions?` is non-`none`, will also append an inline
 suggestion widget.
 -/
-def MessageData.hint (hint : MessageData) (suggestions? : Option HintSuggestions := none)
+def _root_.Lean.MessageData.hint (hint : MessageData) (suggestions? : Option Suggestions := none)
     : CoreM MessageData := do
   let mut hintMsg := m!"\n\nhint: {hint}"
   if let some suggestions := suggestions? then
     hintMsg := hintMsg ++ (← suggestions.toHintMessage)
-  return hintMsg
+  return .tagged `hint hintMsg
