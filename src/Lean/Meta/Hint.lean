@@ -1,5 +1,7 @@
 /-
-TODO: copyright
+Copyright (c) 2025 Lean FRO, LLC. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Joseph Rotella
 -/
 
 prelude
@@ -10,14 +12,16 @@ import Lean.Message
 import Lean.Meta.TryThis
 import Lean.Util.Diff
 import Lean.Widget.Types
+import Lean.PrettyPrinter
 
 namespace Lean.Meta.Hint
 
-open Elab Tactic TryThis
+open Elab Tactic TryThis PrettyPrinter
 
 /--
 A widget for rendering code-action suggestions in error messages. Generally, this widget should not
-be used directly; instead, use `MessageData.hint`.
+be used directly; instead, use `MessageData.hint`. Note that this widget is intended only for use
+within message data; it may not display line breaks properly if rendered as a panel widget.
 
 The props to this widget are of the following form:
 ```json
@@ -62,26 +66,25 @@ export default function ({ diff, range, suggestion }) {
   return fullDiff
 }"
 
-inductive DiffRange where
-  | insertion (s : String)
-  | deletion (s : String)
-  | unchanged (s : String)
-deriving Repr
+def mkDiffJson (ds : Array (Diff.Action × Char)) :=
+  -- Avoid cluttering the DOM by grouping "runs" of the same action
+  let unified : List (Diff.Action × List Char) := ds.foldr (init := []) fun
+    | (act, c), [] => [(act, [c])]
+    | (act, c), (act', cs) :: acc =>
+      if act == act' then
+        (act, c :: cs) :: acc
+      else
+        (act, [c]) :: (act', cs) :: acc
+  toJson <| unified.map fun
+    | (.insert, s) => json% { type: "insertion", text: $(String.mk s) }
+    | (.delete, s) => json% { type: "deletion", text: $(String.mk s) }
+    | (.skip  , s) => json% { type: "unchanged", text: $(String.mk s) }
 
-def mkDiffJson (ds : Array (Diff.Action × String)) :=
-  toJson <| ds.map fun
-    | (.insert, s) => json% { type: "insertion", text: $s }
-    | (.delete, s) => json% { type: "deletion", text: $s }
-    | (.skip  , s) => json% { type: "unchanged", text: $s }
-
-def mkDiffString (ds : Array (Diff.Action × String)) : String :=
-  let decorate (s : String) (dec : Char) : String :=
-    .mk <| s.data.foldr (init := []) fun c acc =>
-      c :: dec :: acc
+def mkDiffString (ds : Array (Diff.Action × Char)) : String :=
   let rangeStrs := ds.map fun
-    | (.insert, s) => decorate s '\u0332'
-    | (.delete, s) => decorate s '\u0335'
-    | (.skip  , s) => s
+    | (.insert, s) => String.mk [s, '\u0332']
+    | (.delete, s) => String.mk [s, '\u0335']
+    | (.skip  , s) => String.mk [s]
   rangeStrs.foldl (· ++ ·) ""
 
 structure HintSuggestion extends Suggestion where
@@ -98,13 +101,6 @@ structure HintSuggestions where
   suggestions : Array HintSuggestion
   codeActionPrefix? : Option String := none
 
--- This hack is required so that we can avoid import cycles: to delaborate syntax suggestions, we
--- need to import `Lean.PrettyPrinter`, which imports portions of `Lean.Elab` from which we may
--- reasonably want to throw hint-containing errors
-@[extern "lean_meta_tactic_try_this_process_suggestions_pushing_info"]
-private opaque processSuggestionsPushingInfo :
-  Syntax → String.Range → Array Suggestion → Option String → CoreM (Array String × Lsp.Range)
-
 /--
 Creates message data corresponding to a `HintSuggestions` collection and adds the corresponding info
 leaf.
@@ -115,26 +111,27 @@ def HintSuggestions.toHintMessage (suggestions : HintSuggestions) : CoreM Messag
   if suggestions.size > 0 then
     for suggestion in suggestions do
       if let some range := (suggestion.span?.getD ref).getRange? then
-        let (suggestionTexts, lspRange) ←
-          processSuggestionsPushingInfo ref range #[suggestion.toSuggestion] codeActionPrefix?
-        let suggestionText := suggestionTexts[0]!
+        let { info, suggestions := suggestionArr, range := lspRange } ← processSuggestions ref range
+          #[suggestion.toSuggestion] codeActionPrefix?
+        pushInfoLeaf info
+        let suggestionText := suggestionArr[0]!.2.1
         let map ← getFileMap
         let rangeContents := Substring.mk map.source range.start range.stop |>.toString
-        let split (s : String) := s.toList.map (String.mk ∘ ([·])) |>.toArray
+        let split (s : String) := s.toList.toArray
         let edits := Diff.diff (split rangeContents) (split suggestionText)
         let diff := mkDiffJson edits
-        let preInfo := suggestion.preInfo?.getD ""
-        let postInfo := suggestion.postInfo?.getD ""
         let json := json% {
           diff: $diff,
           suggestion: $suggestionText,
           range: $lspRange
         }
+        let preInfo := suggestion.preInfo?.getD ""
+        let postInfo := suggestion.postInfo?.getD ""
         let widget := MessageData.ofWidget {
             id := ``tryThisDiffWidget
             javascriptHash := tryThisDiffWidget.javascriptHash
             props := return json
-          } (mkDiffString edits)
+          } (suggestion.messageData?.getD (mkDiffString edits))
         let widgetMsg := m!"{preInfo}{widget}{postInfo}"
         let suggestionMsg := if suggestions.size == 1 then m!"\n{widgetMsg}" else m!"\n• {widgetMsg}"
         msg := msg ++ MessageData.nestD suggestionMsg
