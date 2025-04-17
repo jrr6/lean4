@@ -34,6 +34,6 @@ set_option linter.deprecated false in
 
 @[deprecated] def Nat.z (x : Nat) := x + 1
 
-/-- warning: `Nat.z` has been deprecated -/
+/-- warning: 'Nat.z' has been deprecated -/
 #guard_msgs in
 example (n : Nat) : n.z = n + 1 := rfl

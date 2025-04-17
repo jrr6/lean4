@@ -11,17 +11,13 @@ open Foo
 #guard_msgs in
 example : True := foo -- Should not produce warning
 
-/--
-error: `Foo.foo` has been deprecated
--/
+/-- error: 'Foo.foo' has been deprecated -/
 #guard_msgs in
 example : Nat := Foo.foo
 
 namespace Foo
 
-/--
-error: `Foo.foo` has been deprecated
--/
+/-- error: 'Foo.foo' has been deprecated -/
 #guard_msgs in
 example : Nat := foo
 
