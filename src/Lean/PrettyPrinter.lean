@@ -112,8 +112,8 @@ private partial def noContext : MessageData → MessageData
 -- strip context (including environments with registered pretty printers) to prevent infinite recursion when pretty printing pretty printer error
 private def withoutContext {m} [MonadExcept Exception m] (x : m α) : m α :=
   tryCatch x fun
-    | Exception.error ref msg => throw <| Exception.error ref (noContext msg)
-    | ex                      => throw ex
+    | Exception.error ref msg d => throw <| Exception.error ref (noContext msg) d
+    | ex                        => throw ex
 
 builtin_initialize
   ppFnsRef.set {

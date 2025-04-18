@@ -11,10 +11,18 @@ import Lean.Util.MonadCache
 
 namespace Lean
 
+/--
+An error descriptor for thrown and logged errors.
+
+Error descriptors uniquely identify each thrown or logged error.
+-/
+-- Alternative: define this as `structure ErrorDescr where` and make `descr : Option ErrorDescr`
+abbrev ErrorDescr := Name
+
 /-- Exception type used in most Lean monads -/
 inductive Exception where
   /-- Error messages that are displayed to users. `ref` is used to provide position information. -/
-  | error (ref : Syntax) (msg : MessageData)
+  | error (ref : Syntax) (msg : MessageData) (descr : ErrorDescr := .anonymous)
   /--
   Internal exceptions that are not meant to be seen by users.
   Examples: "postpone elaboration", "stuck at universe constraint", etc.
@@ -23,20 +31,20 @@ inductive Exception where
 
 /-- Convert exception into a structured message. -/
 def Exception.toMessageData : Exception → MessageData
-  | .error _ msg   => msg
+  | .error _ msg _ => msg
   | .internal id _ => id.toString
 
 def Exception.hasSyntheticSorry : Exception → Bool
-  | Exception.error _ msg => msg.hasSyntheticSorry
-  | _                     => false
+  | Exception.error _ msg _ => msg.hasSyntheticSorry
+  | _                       => false
 
 /--
 Return syntax object providing position information for the exception.
 Recall that internal exceptions do not have position information.
 -/
 def Exception.getRef : Exception → Syntax
-  | .error ref _  => ref
-  | .internal _ _ => Syntax.missing
+  | .error ref _ _ => ref
+  | .internal _ _  => Syntax.missing
 
 instance : Inhabited Exception := ⟨Exception.error default default⟩
 
@@ -167,7 +175,7 @@ but it is also produced by `MacroM` which implemented in the prelude, and intern
 been defined yet.
 -/
 def Exception.isMaxRecDepth (ex : Exception) : Bool :=
-  ex matches error _ (.tagged `runtime.maxRecDepth _)
+  ex matches error _ (.tagged `runtime.maxRecDepth _) _
 
 /--
 Increment the current recursion depth and then execute `x`.

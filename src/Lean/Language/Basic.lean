@@ -287,6 +287,7 @@ def reportMessages (msgLog : MessageLog) (opts : Options)
         {msg with severity}
       else
         msg
+    -- TODO: include message names in print-outs
     unless msg.isSilent do
       if json then
         let j ← msg.toJson
