@@ -203,7 +203,7 @@ partial def mkUnusedBaseName (baseName : Name) : MacroM Name := do
 
 def logException [Monad m] [MonadLog m] [AddMessageContext m] [MonadOptions m] [MonadLiftT IO m] (ex : Exception) : m Unit := do
   match ex with
-  | Exception.error ref msg => logErrorAt ref msg
+  | Exception.error ref msg d => logErrorAt ref msg d
   | Exception.internal id _ =>
     unless isAbortExceptionId id || ex.isInterrupt do
       let name ← id.getName

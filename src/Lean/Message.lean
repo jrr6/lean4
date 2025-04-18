@@ -344,21 +344,23 @@ There are two varieties in the Lean core:
 `Message.serialize`.
 -/
 structure BaseMessage (α : Type u) where
-  fileName      : String
-  pos           : Position
-  endPos        : Option Position := none
+  fileName       : String
+  pos            : Position
+  endPos         : Option Position := none
   /-- If `true`, report range as given; see `msgToInteractiveDiagnostic`. -/
-  keepFullRange : Bool := false
-  severity      : MessageSeverity := .error
+  keepFullRange  : Bool := false
+  severity       : MessageSeverity := .error
   /--
   If `true`, filter this message from non-language server output.
   In the language server, silent messages are served as silent diagnostics.
   See also `DiagnosticWith.isSilent?`.
   -/
-  isSilent      : Bool := false
-  caption       : String          := ""
+  isSilent       : Bool := false
+  caption        : String          := ""
+  /-- A name for a warning or error diagnostic associated with an explanation. -/
+  diagnosticName : Name := .anonymous
   /-- The content of the message. -/
-  data          : α
+  data           : α
   deriving Inhabited, ToJson, FromJson
 
 /-- A `Message` is a richly formatted piece of information emitted by Lean.

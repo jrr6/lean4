@@ -325,9 +325,9 @@ def mkFreshUserName (n : Name) : CoreM Name :=
 
 @[inline] def CoreM.toIO (x : CoreM α) (ctx : Context) (s : State) : IO (α × State) := do
   match (← (x.run { ctx with initHeartbeats := (← IO.getNumHeartbeats) } s).toIO') with
-  | Except.error (Exception.error _ msg)   => throw <| IO.userError (← msg.toString)
-  | Except.error (Exception.internal id _) => throw <| IO.userError <| "internal exception #" ++ toString id.idx
-  | Except.ok a                            => return a
+  | Except.error (Exception.error _ msg _)   => throw <| IO.userError (← msg.toString)
+  | Except.error (Exception.internal id _)   => throw <| IO.userError <| "internal exception #" ++ toString id.idx
+  | Except.ok a                              => return a
 
 -- withIncRecDepth for a monad `m` such that `[MonadControlT CoreM n]`
 protected def withIncRecDepth [Monad m] [MonadControlT CoreM m] (x : m α) : m α :=
@@ -534,7 +534,7 @@ export Core (CoreM mkFreshUserName checkSystem withCurrHeartbeats)
   This function is a bit hackish. The heartbeat exception should probably be an internal exception.
   We used a similar hack at `Exception.isMaxRecDepth` -/
 def Exception.isMaxHeartbeat (ex : Exception) : Bool :=
-  ex matches Exception.error _ (.tagged `runtime.maxHeartbeats _)
+  ex matches Exception.error _ (.tagged `runtime.maxHeartbeats _) _
 
 /-- Creates the expression `d → b` -/
 def mkArrow (d b : Expr) : CoreM Expr :=

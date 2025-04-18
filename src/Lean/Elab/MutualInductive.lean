@@ -260,7 +260,7 @@ private def checkParamsAndResultType (type firstType : Expr) (numParams : Nat) :
       | _ =>
         throwError "unexpected inductive resulting type"
   catch
-    | Exception.error ref msg => throw (Exception.error ref m!"invalid mutually inductive types, {msg}")
+    | Exception.error ref msg d => throw (Exception.error ref m!"invalid mutually inductive types, {msg}" d)
     | ex => throw ex
 
 /--

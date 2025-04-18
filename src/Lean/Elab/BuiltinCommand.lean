@@ -320,7 +320,7 @@ def failIfSucceeds (x : CommandElabM Unit) : CommandElabM Unit := do
     x
     hasNoErrorMessages
   catch
-    | ex@(Exception.error _ _) => do logException ex; pure false
+    | ex@(Exception.error _ _ _) => do logException ex; pure false
     | Exception.internal id _  => do logError (← id.getName); pure false
   finally
     restoreMessages prevMessages

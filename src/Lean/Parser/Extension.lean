@@ -520,7 +520,7 @@ private def ParserAttribute.add (_attrName : Name) (catName : Name) (declName : 
     try
       addToken token attrKind
     catch
-      | Exception.error _   msg => throwError "invalid parser '{declName}', {msg}"
+      | Exception.error _ msg _ => throwError "invalid parser '{declName}', {msg}"
       | ex => throw ex
   let kinds := parser.info.collectKinds {}
   kinds.forM fun kind _ => modifyEnv fun env => addSyntaxNodeKind env kind

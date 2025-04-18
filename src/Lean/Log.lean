@@ -59,7 +59,8 @@ If `getRef` has position information but `ref` does not, we use `getRef`.
 We use the `fileMap` to find the line and column numbers for the error message.
 -/
 def logAt (ref : Syntax) (msgData : MessageData)
-    (severity : MessageSeverity := MessageSeverity.error) (isSilent : Bool := false) : m Unit :=
+    (severity : MessageSeverity := MessageSeverity.error) (isSilent : Bool := false)
+    (diagnosticName : Name := .anonymous) : m Unit :=
   unless severity == .error && msgData.hasSyntheticSorry do
     let severity := if severity == .warning && warningAsError.get (← getOptions) then .error else severity
     let ref    := replaceRef ref (← MonadLog.getRef)
@@ -74,32 +75,35 @@ def logAt (ref : Syntax) (msgData : MessageData)
       data := msgData
       severity
       isSilent
+      diagnosticName
     }
 
 /-- Log a new error message using the given message data. The position is provided by `ref`. -/
-def logErrorAt (ref : Syntax) (msgData : MessageData) : m Unit :=
-  logAt ref msgData MessageSeverity.error
+def logErrorAt (ref : Syntax) (msgData : MessageData) (name : Name := .anonymous) : m Unit :=
+  logAt ref msgData MessageSeverity.error (diagnosticName := name)
 
 /-- Log a new warning message using the given message data. The position is provided by `ref`. -/
-def logWarningAt [MonadOptions m] (ref : Syntax) (msgData : MessageData) : m Unit := do
-  logAt ref msgData .warning
+def logWarningAt [MonadOptions m] (ref : Syntax) (msgData : MessageData) (name : Name := .anonymous) : m Unit := do
+  logAt ref msgData .warning (diagnosticName := name)
 
 /-- Log a new information message using the given message data. The position is provided by `ref`. -/
 def logInfoAt (ref : Syntax) (msgData : MessageData) : m Unit :=
   logAt ref msgData MessageSeverity.information
 
 /-- Log a new error/warning/information message using the given message data and `severity`. The position is provided by `getRef`. -/
-def log (msgData : MessageData) (severity : MessageSeverity := MessageSeverity.error): m Unit := do
+def log (msgData : MessageData) (severity : MessageSeverity := MessageSeverity.error)
+    (isSilent : Bool := false)
+    (diagnosticName : Name := .anonymous) : m Unit := do
   let ref ← MonadLog.getRef
-  logAt ref msgData severity
+  logAt ref msgData severity isSilent diagnosticName
 
 /-- Log a new error message using the given message data. The position is provided by `getRef`. -/
-def logError (msgData : MessageData) : m Unit :=
-  log msgData MessageSeverity.error
+def logError (msgData : MessageData) (name : Name := .anonymous) : m Unit :=
+  log msgData MessageSeverity.error (diagnosticName := name)
 
 /-- Log a new warning message using the given message data. The position is provided by `getRef`. -/
-def logWarning [MonadOptions m] (msgData : MessageData) : m Unit := do
-  log msgData (if warningAsError.get (← getOptions) then .error else .warning)
+def logWarning [MonadOptions m] (msgData : MessageData) (name : Name := .anonymous) : m Unit := do
+  log msgData .warning (diagnosticName := name)
 
 /-- Log a new information message using the given message data. The position is provided by `getRef`. -/
 def logInfo (msgData : MessageData) : m Unit :=

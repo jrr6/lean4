@@ -1263,7 +1263,7 @@ private partial def resolveLValLoop (lval : LVal) (e eType : Expr) (previousExce
     let lvalRes ← resolveLValAux e eType lval
     return (e, lvalRes)
   catch
-    | ex@(Exception.error _ _) =>
+    | ex@(Exception.error _ _ _) =>
       let eType? ← unfoldDefinition? eType
       match eType? with
       | some eType => resolveLValLoop lval e eType (previousExceptions.push ex) hasArgs

@@ -438,10 +438,10 @@ private def hasNonTrivialExample (p : Problem) : Bool :=
 
 private def throwCasesException (p : Problem) (ex : Exception) : MetaM α := do
   match ex with
-  | .error ref msg =>
+  | .error ref msg d =>
     let exampleMsg :=
       if hasNonTrivialExample p then m!" after processing{indentD <| examplesToMessageData p.examples}" else ""
-    throw <| Exception.error ref <| m!"{msg}{exampleMsg}\n" ++
+    throw <| Exception.error ref (descr := d) <| m!"{msg}{exampleMsg}\n" ++
               "the dependent pattern matcher can solve the following kinds of equations\n" ++
               "- <var> = <term> and <term> = <var>\n" ++
               "- <term> = <term> where the terms are definitionally equal\n" ++

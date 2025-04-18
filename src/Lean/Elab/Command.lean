@@ -284,8 +284,8 @@ def runLinters (stx : Syntax) : CommandElabM Unit := do
               linter.run stx
             catch ex =>
               match ex with
-              | Exception.error ref msg =>
-                logException (.error ref m!"linter {.ofConstName linter.name} failed: {msg}")
+              | Exception.error ref msg d =>
+                logException (.error ref m!"linter {.ofConstName linter.name} failed: {msg}" d)
               | Exception.internal _ _ =>
                 logException ex
             finally

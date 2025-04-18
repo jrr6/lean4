@@ -1946,7 +1946,8 @@ instance : Alternative MetaM where
 
 @[inline] private def orelseMergeErrorsImp (x y : MetaM α)
     (mergeRef : Syntax → Syntax → Syntax := fun r₁ _ => r₁)
-    (mergeMsg : MessageData → MessageData → MessageData := fun m₁ m₂ => m₁ ++ Format.line ++ m₂) : MetaM α := do
+    (mergeMsg : MessageData → MessageData → MessageData := fun m₁ m₂ => m₁ ++ Format.line ++ m₂)
+    (mergeDescrs : Name → Name → Name := fun d₁ _ => d₁) : MetaM α := do
   let env  ← getEnv
   let mctx ← getMCtx
   try
@@ -1955,11 +1956,11 @@ instance : Alternative MetaM where
     setEnv env
     setMCtx mctx
     match ex with
-    | Exception.error ref₁ m₁ =>
+    | Exception.error ref₁ m₁ d₁ =>
       try
         y
       catch
-        | Exception.error ref₂ m₂ => throw <| Exception.error (mergeRef ref₁ ref₂) (mergeMsg m₁ m₂)
+        | Exception.error ref₂ m₂ d₂ => throw <| Exception.error (mergeRef ref₁ ref₂) (mergeMsg m₁ m₂) (mergeDescrs d₁ d₂)
         | ex => throw ex
     | ex => throw ex
 
@@ -1969,15 +1970,16 @@ instance : Alternative MetaM where
   The default `mergeMsg` combines error messages using `Format.line ++ Format.line` as a separator. -/
 @[inline] def orelseMergeErrors [MonadControlT MetaM m] [Monad m] (x y : m α)
     (mergeRef : Syntax → Syntax → Syntax := fun r₁ _ => r₁)
-    (mergeMsg : MessageData → MessageData → MessageData := fun m₁ m₂ => m₁ ++ Format.line ++ Format.line ++ m₂) : m α := do
-  controlAt MetaM fun runInBase => orelseMergeErrorsImp (runInBase x) (runInBase y) mergeRef mergeMsg
+    (mergeMsg : MessageData → MessageData → MessageData := fun m₁ m₂ => m₁ ++ Format.line ++ Format.line ++ m₂)
+    (mergeDescrs : ErrorDescr → ErrorDescr → ErrorDescr := fun d₁ _ => d₁) : m α := do
+  controlAt MetaM fun runInBase => orelseMergeErrorsImp (runInBase x) (runInBase y) mergeRef mergeMsg mergeDescrs
 
 /-- Execute `x`, and apply `f` to the produced error message -/
 def mapErrorImp (x : MetaM α) (f : MessageData → MessageData) : MetaM α := do
   try
     x
   catch
-    | Exception.error ref msg => throw <| Exception.error ref <| f msg
+    | Exception.error ref msg d => throw <| Exception.error ref (f msg) d
     | ex => throw ex
 
 @[inline] def mapError [MonadControlT MetaM m] [Monad m] (x : m α) (f : MessageData → MessageData) : m α :=
