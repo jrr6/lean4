@@ -7,6 +7,7 @@ prelude
 import Lean.AddDecl
 import Lean.Meta.AppBuilder
 import Lean.Meta.CompletionName
+import Lean.Meta.Constructions.Basic
 
 namespace Lean
 
@@ -22,6 +23,7 @@ def mkNoConfusionCore (declName : Name) : MetaM Unit := do
   unless recInfo.levelParams.length > indVal.levelParams.length do return
 
   let name := Name.mkStr declName "noConfusionType"
+  ensureAuxNameUnused name declName
   let decl ← ofExceptKernelException (mkNoConfusionTypeCoreImp (← getEnv) declName)
   addDecl decl
   setReducibleAttribute name
@@ -29,6 +31,7 @@ def mkNoConfusionCore (declName : Name) : MetaM Unit := do
   modifyEnv fun env => addProtected env name
 
   let name := Name.mkStr declName "noConfusion"
+  ensureAuxNameUnused name declName
   let decl ← ofExceptKernelException (mkNoConfusionCoreImp (← getEnv) declName)
   addDecl decl
   setReducibleAttribute name
@@ -49,6 +52,7 @@ where
     let us := info.levelParams.map mkLevelParam
     let numCtors := info.ctors.length
     let declName := Name.mkStr enumName "toCtorIdx"
+    ensureAuxNameUnused declName enumName
     let enumType := mkConst enumName us
     let natType  := mkConst ``Nat
     let declType ← mkArrow enumType natType
@@ -81,6 +85,7 @@ where
       let declType  ← mkForallFVars #[P, x, y] sortV
       let declValue ← mkLambdaFVars #[P, x, y] (← mkAppM ``noConfusionTypeEnum #[toCtorIdx, P, x, y])
       let declName  := Name.mkStr enumName "noConfusionType"
+      ensureAuxNameUnused declName enumName
       addAndCompile <| Declaration.defnDecl {
         name        := declName
         levelParams := v :: info.levelParams
@@ -106,6 +111,7 @@ where
       let declType  ← mkForallFVars #[P, x, y, h] (mkApp3 noConfusionType P x y)
       let declValue ← mkLambdaFVars #[P, x, y, h] (← mkAppOptM ``noConfusionEnum #[none, none, none, toCtorIdx, P, x, y, h])
       let declName  := Name.mkStr enumName "noConfusion"
+      ensureAuxNameUnused declName enumName
       addAndCompile <| Declaration.defnDecl {
         name        := declName
         levelParams := v :: info.levelParams

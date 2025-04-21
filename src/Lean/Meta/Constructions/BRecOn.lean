@@ -9,6 +9,7 @@ import Lean.AuxRecursor
 import Lean.AddDecl
 import Lean.Meta.CompletionName
 import Lean.Meta.PProdN
+import Lean.Meta.Constructions.Basic
 
 namespace Lean
 open Meta
@@ -158,6 +159,7 @@ private def mkBelowOrIBelow (indName : Name) (ibelow : Bool) : MetaM Unit := do
 
   let recName := mkRecName indName
   let belowName := if ibelow then mkIBelowName indName else mkBelowName indName
+  ensureAuxNameUnused belowName indName
   mkBelowFromRec recName ibelow indVal.isReflexive indVal.numParams belowName
 
   -- If this is the first inductive in a mutual group with nested inductives,
@@ -166,6 +168,7 @@ private def mkBelowOrIBelow (indName : Name) (ibelow : Bool) : MetaM Unit := do
     for i in [:indVal.numNested] do
       let recName := recName.appendIndexAfter (i + 1)
       let belowName := belowName.appendIndexAfter (i + 1)
+      ensureAuxNameUnused belowName indName
       mkBelowFromRec recName ibelow indVal.isReflexive indVal.numParams belowName
 
 def mkBelow (declName : Name) : MetaM Unit := mkBelowOrIBelow declName true
@@ -349,6 +352,7 @@ def mkBRecOnOrBInductionOn (indName : Name) (ind : Bool) : MetaM Unit := do
 
   let recName := mkRecName indName
   let brecOnName := if ind then mkBInductionOnName indName else mkBRecOnName indName
+  ensureAuxNameUnused brecOnName indName
   mkBRecOnFromRec recName ind indVal.isReflexive indVal.numParams indVal.all.toArray brecOnName
 
   -- If this is the first inductive in a mutual group with nested inductives,
@@ -357,6 +361,7 @@ def mkBRecOnOrBInductionOn (indName : Name) (ind : Bool) : MetaM Unit := do
     for i in [:indVal.numNested] do
       let recName := recName.appendIndexAfter (i + 1)
       let brecOnName := brecOnName.appendIndexAfter (i + 1)
+      ensureAuxNameUnused brecOnName indName
       mkBRecOnFromRec recName ind indVal.isReflexive indVal.numParams indVal.all.toArray brecOnName
 
 

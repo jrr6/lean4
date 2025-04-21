@@ -978,6 +978,12 @@ private def checkNoInductiveNameConflicts (elabs : Array InductiveElabStep1) : T
     uniqueNames := uniqueNames.insert typeDeclName (true, view.declId)
     for ctor in view.ctors do
       let ctorName := privateToUserName ctor.declName
+      -- Should not be a potential aux-decl name (we don't know a priori which ones will be used by
+      -- this decl, so exclude them all; it's a good habit to avoid these names anyway)
+      if let some suffix := ctorName.hasAuxRecSuffix? then
+          throwErrorAt ctor.declId m!"Invalid constructor name '{ctorName}': \
+            The name '{suffix}' is used by auxiliary declarations; please pick a different name"
+      -- Should not conflict with other constructors
       if let some (prevNameIsType, prevRef) := uniqueNames[ctorName]? then
         let declKinds := if prevNameIsType then "an inductive type and a constructor" else "multiple constructors"
         throwErrorsAt prevRef ctor.declId m!"cannot define {declKinds} with the same name '{ctorName}'"

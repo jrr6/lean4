@@ -525,7 +525,8 @@ def all : ConstantInfo → List Name
 
 end ConstantInfo
 
+def recSuffix := "rec"
 def mkRecName (declName : Name) : Name :=
-  Name.mkStr declName "rec"
+  Name.mkStr declName recSuffix
 
 end Lean

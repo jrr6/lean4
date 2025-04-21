@@ -6,6 +6,7 @@ Authors: Leonardo de Moura
 prelude
 import Lean.AddDecl
 import Lean.Meta.Basic
+import Lean.Meta.Constructions.Basic
 
 namespace Lean
 
@@ -15,6 +16,7 @@ open Meta
 
 def mkCasesOn (declName : Name) : MetaM Unit := do
   let name := mkCasesOnName declName
+  ensureAuxNameUnused name declName
   let decl ← ofExceptKernelException (mkCasesOnImp (← getEnv).toKernelEnv declName)
   addDecl decl
   setReducibleAttribute name

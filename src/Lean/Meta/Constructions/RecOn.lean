@@ -8,12 +8,16 @@ import Lean.Meta.InferType
 import Lean.AuxRecursor
 import Lean.AddDecl
 import Lean.Meta.CompletionName
+import Lean.Meta.Constructions.Basic
 
 open Lean Meta
 
 def mkRecOn (n : Name) : MetaM Unit := do
   let .recInfo recInfo ← getConstInfo (mkRecName n)
     | throwError "{mkRecName n} not a recinfo"
+  let recOnName := mkRecOnName n
+  ensureAuxNameUnused recOnName n
+
   let decl ← forallTelescope recInfo.type fun xs t => do
     let e := .const recInfo.name (recInfo.levelParams.map (.param ·))
     let e := mkAppN e xs
@@ -27,7 +31,7 @@ def mkRecOn (n : Name) : MetaM Unit := do
       xs[AC_size:AC_size + recInfo.numMinors]
     let type ← mkForallFVars vs t
     let value ← mkLambdaFVars vs e
-    mkDefinitionValInferrringUnsafe (mkRecOnName n) recInfo.levelParams type value .abbrev
+    mkDefinitionValInferrringUnsafe recOnName recInfo.levelParams type value .abbrev
 
   addDecl (.defnDecl decl)
   setReducibleAttribute decl.name

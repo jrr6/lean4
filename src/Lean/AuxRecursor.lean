@@ -15,6 +15,25 @@ def binductionOnSuffix  := "binductionOn"
 def belowSuffix         := "below"
 def ibelowSuffix        := "ibelow"
 
+/--
+A set of name suffixes used by auto-generated auxiliary declarations.
+
+In general, user-defined constants should avoid conflicting with these names.
+-/
+def auxRecSuffixes : Std.HashSet String :=
+  {casesOnSuffix, recOnSuffix, brecOnSuffix, binductionOnSuffix, belowSuffix, ibelowSuffix, recSuffix}
+
+/--
+If the given name ends with a suffix that is used by auxiliary declarations, returns the suffix in
+question; returns `none` otherwise.
+
+This is useful for detecting if a constructor or field name should be rejected because it may
+conflict with an auto-generated auxiliary declaration.
+-/
+def Name.hasAuxRecSuffix? : Name → Option String
+  | .str _ s => if auxRecSuffixes.contains s then s else none
+  | _ => none
+
 def mkCasesOnName (indDeclName : Name) : Name := Name.mkStr indDeclName casesOnSuffix
 def mkRecOnName (indDeclName : Name) : Name   := Name.mkStr indDeclName recOnSuffix
 def mkBRecOnName (indDeclName : Name) : Name  := Name.mkStr indDeclName brecOnSuffix

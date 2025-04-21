@@ -21,7 +21,8 @@ For example, give a definition `foo`, we flag `foo.def` as reserved symbol.
 -/
 
 def throwReservedNameNotAvailable [Monad m] [MonadError m] (declName : Name) (reservedName : Name) : m Unit := do
-  throwError "failed to declare `{declName}` because `{.ofConstName reservedName true}` has already been declared"
+  throwError m!"Failed to automatically generate declaration '{.ofConstName reservedName true}' for '{declName}': This name has already been declared"
+    ++ .hint' m!"Rename '{.ofConstName reservedName true}' to allow this declaration to be generated"
 
 def ensureReservedNameAvailable [Monad m] [MonadEnv m] [MonadError m] (declName : Name) (suffix : String) : m Unit := do
   let reservedName := .str declName suffix
