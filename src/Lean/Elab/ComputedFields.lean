@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Gabriel Ebner
 -/
 prelude
+import Lean.Meta.Constructions.Basic
 import Lean.Meta.Constructions.CasesOn
 import Lean.Compiler.ImplementedByAttr
 import Lean.Elab.PreDefinition.WF.Eqns
@@ -79,12 +80,14 @@ def validateComputedFields : M Unit := do
 
 def mkImplType : M Unit := do
   let {name, isUnsafe, type, ctors, levelParams, numParams, lparams, params, compFieldVars, ..} ← read
+  let implName := name ++ `_impl
+  ensureAuxNameUnused implName name
   addDecl <| .inductDecl levelParams numParams
     (isUnsafe := isUnsafe) -- Note: inlining is disabled with unsafe inductives
-    [{ name := name ++ `_impl, type,
+    [{ name := implName, type,
        ctors := ← ctors.mapM fun ctor => do
          forallTelescope (← inferType (mkAppN (mkConst ctor lparams) params)) fun fields retTy => do
-           let retTy := mkAppN (mkConst (name ++ `_impl) lparams) retTy.getAppArgs
+           let retTy := mkAppN (mkConst implName lparams) retTy.getAppArgs
            let type ← mkForallFVars (params ++ (if ← isScalarField ctor then #[] else compFieldVars) ++ fields) retTy
            return { name := ctor ++ `_impl, type } }]
 
@@ -110,6 +113,7 @@ def overrideCasesOn : M Unit := do
             mkLambdaFVars ((if ← isScalarField ctor then #[] else compFieldVars) ++ args)
               (← mkUnsafeCastTo constMotive (mkAppN minor args)))
   let nameOverride := mkCasesOnName name ++ `_override
+  ensureAuxNameUnused nameOverride name
   addDecl <| .defnDecl { casesOn with
     name := nameOverride
     all  := [nameOverride]
@@ -127,8 +131,10 @@ def overrideConstructors : M Unit := do
     let ctorTerm := mkAppN (mkConst ctor lparams) (params ++ fields)
     let computedFieldVals ← if ← isScalarField ctor then pure #[] else
       compFields.mapM (getComputedFieldValue · ctorTerm)
+    let nameOverride := ctor ++ `_override
+    ensureAuxNameUnused nameOverride ctor
     addDecl <| .defnDecl {
-      name := ctor ++ `_override
+      name := nameOverride
       levelParams
       type := ← inferType (mkConst ctor lparams)
       value := ← mkLambdaFVars (params ++ fields) <| ← mkUnsafeCastTo retTy <|
@@ -136,8 +142,8 @@ def overrideConstructors : M Unit := do
       hints := .opaque
       safety := .unsafe
     }
-    setImplementedBy ctor (ctor ++ `_override)
-    if ← isScalarField ctor then setInlineAttribute (ctor ++ `_override)
+    setImplementedBy ctor nameOverride
+    if ← isScalarField ctor then setInlineAttribute nameOverride
 
 def overrideComputedFields : M Unit := do
   let {name, levelParams, ctors, compFields, compFieldVars, lparams, params, indices, val ..} ← read
@@ -153,8 +159,10 @@ def overrideComputedFields : M Unit := do
           ← getComputedFieldValue cfn (mkAppN (mkConst ctor lparams) (params ++ fields))
       else
         mkLambdaFVars (compFieldVars ++ fields) cf
+    let nameOverride := cfn ++ `_override
+    ensureAuxNameUnused nameOverride name
     addDecl <| .defnDecl {
-      name := cfn ++ `_override
+      name := nameOverride
       levelParams
       type := ← mkForallFVars (params ++ indices ++ #[val]) (← inferType cf)
       value := ← mkLambdaFVars (params ++ indices ++ #[val]) <|
@@ -164,7 +172,7 @@ def overrideComputedFields : M Unit := do
       safety := .unsafe
       hints := .opaque
     }
-    setImplementedBy cfn (cfn ++ `_override)
+    setImplementedBy cfn nameOverride
 
 def mkComputedFieldOverrides (declName : Name) (compFields : Array Name) : MetaM Unit := do
   let ind ← getConstInfoInduct declName

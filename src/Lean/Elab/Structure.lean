@@ -984,6 +984,9 @@ where
       withRef view.ref do
       if let some parent := (← get).parents.find? (·.name == view.name) then
         throwError "field '{view.name}' has already been declared as a projection for parent '{.ofConstName parent.structName}'"
+      if let some suffix := view.name.hasAuxRecSuffix? then
+        throwError "Invalid field name '{view.name}': The name '{suffix}' is used by auxiliary \
+          declarations; please pick a different name"
       match ← findFieldInfo? view.name with
       | none      =>
         let (type?, paramInfoOverrides, default?) ← elabFieldTypeValue structParams view

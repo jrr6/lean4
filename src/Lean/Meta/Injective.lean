@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Leonardo de Moura
 -/
 prelude
+import Lean.Meta.Constructions.Basic
 import Lean.Meta.Transform
 import Lean.Meta.Tactic.Injection
 import Lean.Meta.Tactic.Apply
@@ -133,6 +134,7 @@ private def mkInjectiveTheorem (ctorVal : ConstructorVal) : MetaM Unit := do
     | return ()
   let value ← mkInjectiveTheoremValue ctorVal.name type
   let name := mkInjectiveTheoremNameFor ctorVal.name
+  ensureAuxNameUnused name ctorVal.name
   addDecl <| Declaration.thmDecl {
     name
     levelParams := ctorVal.levelParams
@@ -164,6 +166,7 @@ private def mkInjectiveEqTheorem (ctorVal : ConstructorVal) : MetaM Unit := do
     | return ()
   let value ← mkInjectiveEqTheoremValue ctorVal.name type
   let name := mkInjectiveEqTheoremNameFor ctorVal.name
+  ensureAuxNameUnused name ctorVal.name
   addDecl <| Declaration.thmDecl {
     name
     levelParams := ctorVal.levelParams
