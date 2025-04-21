@@ -67,7 +67,14 @@ namespace Lean.Meta
             if newType.isForall then
               loop (i+1) lctx fvars fvars.size s newType
             else
-              throwTacticEx `introN mvarId "insufficient number of binders"
+              if fvars.size == 0 then
+                throwTacticEx `introN mvarId <| m!"The goal contains no binders to introduce"
+                  -- TODO: only show the hint if the user actually used the intro tactic (maybe move
+                  -- this to the `intro` logic somehow?)
+                  ++ MessageData.hint' m!"The `intro` tactic can only be applied to goals that have a \
+                    function type (i.e., start with a `∀` or have an outer `→`) or that begin with a `let` binding"
+              else
+                throwTacticEx `introN mvarId m!"Can introduce at most {i} hypotheses, but {n} names/patterns were provided"
   let (fvars, mvarId) ← loop n lctx #[] 0 s mvarType
   return (fvars.map Expr.fvarId!, mvarId)
 

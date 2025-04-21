@@ -72,10 +72,19 @@ partial def addPPExplicitToExposeDiff (a b : Expr) : MetaM (Expr × Expr) := do
     -- We want to be able to assign metavariables to work out what why `isDefEq` failed,
     -- but we don't want these assignments to leak out of the function.
     -- Note: we shouldn't instantiate mvars in `visit` to prevent leakage.
-    withoutModifyingState do
+    -- withoutModifyingState do
+    --   visit (← instantiateMVars a) (← instantiateMVars b)
+    dbg_trace s!"we called addPPExplicitToExposeDiff"
+    let s ← saveState
+    try
       visit (← instantiateMVars a) (← instantiateMVars b)
+    finally
+      let { messages, .. } ← getThe Core.State
+      restoreState s
+      modifyThe Core.State fun s => { s with messages }
 where
   visit (a b : Expr) : MetaM (Expr × Expr) := do
+    dbg_trace s!"we called visit"
     try
       match a, b with
       | .mdata _ a', _ =>
@@ -96,13 +105,17 @@ where
           let (a', b') ← visit a' b'
           return (a.updateProj! a', b.updateProj! b')
       | .app .., .app .. =>
+        dbg_trace "visiting apps:\n• {a}\n• {b}"
         if a.getAppNumArgs != b.getAppNumArgs then
+          dbg_trace "num args diff"
           return (a, b)
         else if a.getAppFn'.isMVar || b.getAppFn'.isMVar then
           -- This is a failed higher-order unification. Do not proceed to `isDefEq`.
+          dbg_trace "higher order failure"
           return (a, b)
         else if !(← isDefEq a.getAppFn b.getAppFn) then
           let (fa, fb) ← visit a.getAppFn b.getAppFn
+          dbg_trace "not defeq"
           return (mkAppN fa a.getAppArgs, mkAppN fb b.getAppArgs)
         else
           -- The function might be "overapplied", so we can't use `forallBoundedTelescope`.
@@ -142,6 +155,7 @@ where
             if let some { module? := moda? } := isLabeledSorry? a then
               if let some { module? := modb? } := isLabeledSorry? b then
                 if moda? != modb? then
+                  dbg_trace "moda neq modb"
                   return (a.setOption `pp.sorrySource true, b.setOption `pp.sorrySource true)
           -- General case
           if let some i := firstExplicitDiff? <|> firstImplicitDiff? then
@@ -151,9 +165,11 @@ where
           let a := mkAppN a.getAppFn as
           let b := mkAppN b.getAppFn bs
           if firstExplicitDiff?.isSome then
+            dbg_trace "first explicit diff is some"
             return (a, b)
           else
-            return (a.setPPExplicit true, b.setPPExplicit true)
+            dbg_trace s!"Adding pp explicit, no notation to:{s!"• {a}"}\n{s!"• {b}"}"
+            return (a.setPPExplicit true |>.setOption `pp.notation false, b.setPPExplicit true |>.setOption `pp.notation false)
       | .forallE na ta ba bia, .forallE nb tb bb bib =>
         if !(← isDefEq ta tb) then
           let (ta, tb) ← visit ta tb
