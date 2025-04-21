@@ -41,3 +41,9 @@ end
 /-- info: @Boo1.bar : {F : {n : Nat} → Type} → Zoo1 F → Boo1 F → Boo1 F -/
 #guard_msgs in
 #check @Boo1.bar
+
+example (h : n = 3) (x y : Vector Nat n) : x = y := by
+  rw (occs := .pos _) [h]
+
+example (h : n = 3) (x y : Vector Nat n) : x = y := by
+  simp (config := _) [h]

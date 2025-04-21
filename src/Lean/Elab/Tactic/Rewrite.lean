@@ -79,6 +79,6 @@ declare_config_elab elabRewriteConfig Rewrite.Config
     withLocation loc
       (rewriteLocalDecl term symm · cfg)
       (rewriteTarget term symm cfg)
-      (throwTacticEx `rewrite · "did not find instance of the pattern in the current goal")
+      (throwTacticEx `rewrite · "Did not find an instance of the pattern in the current goal")
 
 end Lean.Elab.Tactic

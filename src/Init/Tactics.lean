@@ -1129,7 +1129,10 @@ syntax (name := sleep) "sleep " num : tactic
 It is useful for existential goals.
 -/
 macro "exists " es:term,+ : tactic =>
-  `(tactic| (refine ⟨$es,*, ?_⟩; try trivial))
+  `(tactic| first
+    | (refine ⟨$es,*, ?_⟩; try trivial)
+    | fail "Tactic `exists` failed: either too many witnesses were provided, \
+            or the goal is not an existential-like proposition or type.")
 
 /--
 Apply congruence (recursively) to goals of the form `⊢ f as = f bs` and `⊢ HEq (f as) (f bs)`.
