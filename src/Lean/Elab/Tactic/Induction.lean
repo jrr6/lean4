@@ -813,7 +813,7 @@ The code path shared between `induction` and `fun_induct`; when we already have 
 and the `targets` contains the implicit targets
 -/
 private def evalInductionCore (stx : Syntax) (elimInfo : ElimInfo) (targets : Array Expr)
-    (toTag : Array (Ident × FVarId) := #[]) : TacticM Unit := do
+    (tacName : Name) (toTag : Array (Ident × FVarId) := #[]) : TacticM Unit := do
   let mvarId ← getMainGoal
   -- save initial info before main goal is reassigned
   let initInfo ← mkTacticInfo (← getMCtx) (← getUnsolvedGoals) (← getRef)
@@ -823,20 +823,25 @@ private def evalInductionCore (stx : Syntax) (elimInfo : ElimInfo) (targets : Ar
     let targetFVarIds := targets.map (·.fvarId!)
     let (n, mvarId) ← generalizeVars mvarId stx targets
     mvarId.withContext do
-      let result ← withRef stx[1] do -- use target position as reference
-        ElimApp.mkElimApp elimInfo targets tag
-      trace[Elab.induction] "elimApp: {result.elimApp}"
-      ElimApp.setMotiveArg mvarId result.motive targetFVarIds
-      -- drill down into old and new syntax: allow reuse of an rhs only if everything before it is
-      -- unchanged
-      -- everything up to the alternatives must be unchanged for reuse
-      Term.withNarrowedArgTacticReuse (stx := stx) (argIdx := inductionAltsPos stx) fun optInductionAlts => do
-      withAltsOfOptInductionAlts optInductionAlts fun alts? => do
-        let optPreTac := getOptPreTacOfOptInductionAlts optInductionAlts
-        mvarId.assign result.elimApp
-        ElimApp.evalAlts elimInfo result.alts optPreTac alts? initInfo
-          (numGeneralized := n) (toClear := targetFVarIds) (toTag := toTag)
-        appendGoals result.others.toList
+      try
+        let result ← withRef stx[1] do -- use target position as reference
+          ElimApp.mkElimApp elimInfo targets tag
+        trace[Elab.induction] "elimApp: {result.elimApp}"
+        ElimApp.setMotiveArg mvarId result.motive targetFVarIds
+        -- drill down into old and new syntax: allow reuse of an rhs only if everything before it is
+        -- unchanged
+        -- everything up to the alternatives must be unchanged for reuse
+        Term.withNarrowedArgTacticReuse (stx := stx) (argIdx := inductionAltsPos stx) fun optInductionAlts => do
+        withAltsOfOptInductionAlts optInductionAlts fun alts? => do
+          let optPreTac := getOptPreTacOfOptInductionAlts optInductionAlts
+          mvarId.assign result.elimApp
+          ElimApp.evalAlts elimInfo result.alts optPreTac alts? initInfo
+            (numGeneralized := n) (toClear := targetFVarIds) (toTag := toTag)
+          appendGoals result.others.toList
+      catch
+      -- Don't use `throwTacticEx` because this may be a nested elab error (so don't show the goal)
+      | .error ref m => throw (.error ref m!"Tactic '{tacName}' failed: {m}")
+      | e => throw e
 
 @[builtin_tactic Lean.Parser.Tactic.induction, builtin_incremental]
 def evalInduction : Tactic := fun stx =>
@@ -846,7 +851,7 @@ def evalInduction : Tactic := fun stx =>
     let (targets, toTag) ← elabElimTargets stx[1].getSepArgs
     let elimInfo ← withMainContext <| getElimNameInfo stx[2] targets (induction := true)
     let targets ← withMainContext <| addImplicitTargets elimInfo targets
-    evalInductionCore stx elimInfo targets toTag
+    evalInductionCore stx elimInfo targets `induction toTag
 
 
 /--
@@ -916,7 +921,7 @@ def evalFunInduction : Tactic := fun stx =>
   | _ => focus do
     let (elimInfo, targets) ← elabFunTarget (cases := false) stx[1]
     let targets ← generalizeTargets targets
-    evalInductionCore stx elimInfo targets
+    evalInductionCore stx elimInfo targets `fun_induction
 
 /--
 The code path shared between `cases` and `fun_cases`; when we already have an `elimInfo`

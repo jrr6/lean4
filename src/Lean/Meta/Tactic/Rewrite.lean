@@ -40,7 +40,8 @@ def _root_.Lean.MVarId.rewrite (mvarId : MVarId) (e : Expr) (heq : Expr)
           let e ← instantiateMVars e
           let eAbst ← withConfig (fun oldConfig => { config, oldConfig with }) <| kabstract e lhs config.occs
           unless eAbst.hasLooseBVars do
-            throwTacticEx `rewrite mvarId m!"did not find instance of the pattern in the target expression{indentExpr lhs}"
+            let (tgt, pat) ← addPPExplicitToExposeDiff e lhs
+            throwTacticEx `rewrite mvarId m!"did not find instance of the pattern{indentExpr pat}\nin the target expression{indentExpr tgt}"
           -- construct rewrite proof
           let eNew := eAbst.instantiate1 rhs
           let eNew ← instantiateMVars eNew
