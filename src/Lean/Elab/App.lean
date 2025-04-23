@@ -59,7 +59,7 @@ private def mkProjAndCheck (structName : Name) (idx : Nat) (e : Expr) : MetaM Ex
   if (← isProp eType) then
     let rType ← inferType r
     if !(← isProp rType) then
-      throwError "invalid projection, the expression{indentExpr e}\nis a proposition and has type{indentExpr eType}\nbut the projected value is not, it has type{indentExpr rType}"
+      throwError "Invalid projection: Cannot project a value of non-propositional type{indentExpr rType}\nfrom the expression{indentExpr e}\nwhich has propositional type{indentExpr eType}"
   return r
 
 def synthesizeAppInstMVars (instMVars : Array MVarId) (app : Expr) : TermElabM Unit :=
@@ -210,11 +210,16 @@ private def synthesizePendingAndNormalizeFunType : M Unit := do
     else
       for namedArg in s.namedArgs do
         let f := s.f.getAppFn
-        if f.isConst then
-          throwInvalidNamedArg namedArg f.constName!
-        else
-          throwInvalidNamedArg namedArg none
-      throwError "function expected at{indentExpr s.f}\nterm has type{indentExpr fType}"
+        withRef namedArg.ref do
+          if f.isConst then
+            throwInvalidNamedArg namedArg f.constName!
+          else
+            throwInvalidNamedArg namedArg none
+      let extra :=
+        if let some (arg : Arg) := s.args[0]? then
+          m!"\n\nNote: Expected a function because this term is being applied to the argument{indentD <| toMessageData arg}"
+        else m!""
+      throwError "Invalid application expression: Function expected at{indentExpr s.f}\nbut this term has type{indentExpr fType}{extra}"
 
 /-- Normalize and return the function type. -/
 private def normalizeFunType : M Expr := do
@@ -1261,9 +1266,9 @@ private def resolveLValAux (e : Expr) (eType : Expr) (lval : LVal) : TermElabM L
   match eType.getAppFn.constName?, lval with
   | some structName, LVal.fieldIdx _ idx =>
     if idx == 0 then
-      throwError "invalid projection, index must be greater than 0"
+      throwError "Invalid projection: Index must be greater than 0"
     let env ← getEnv
-    let failK _ := throwLValError e eType "invalid projection, structure expected"
+    let failK _ := throwLValError e eType "Invalid projection: Expected a value whose type is a structure"
     matchConstStructure eType.getAppFn failK fun _ _ ctorVal => do
       let numFields := ctorVal.numFields
       if idx - 1 < numFields then
@@ -1275,7 +1280,9 @@ private def resolveLValAux (e : Expr) (eType : Expr) (lval : LVal) : TermElabM L
             So, we don't projection functions for it. Thus, we use `Expr.proj` -/
           return LValResolution.projIdx structName (idx - 1)
       else
-        throwLValError e eType m!"invalid projection, structure has only {numFields} field(s)"
+        let fields := if numFields = 1 then "field" else "fields"
+        throwError m!"Invalid projection: Index must be between 1 and {numFields}:\
+          {indentExpr e}\nhas type{indentExpr eType}\nwhich has only {numFields} {fields}"
   | some structName, LVal.fieldName _ fieldName _ fullRef =>
     let env ← getEnv
     if isStructure env structName then
@@ -1433,9 +1440,10 @@ where
         return ← go (mkAppN f xs) fType' argIdx remainingNamedArgs unusableNamedArgs allowNamed
       if let some f' ← coerceToFunction? (mkAppN f xs) then
         return ← go f' (← inferType f') argIdx remainingNamedArgs unusableNamedArgs false
+    -- TODO: use `inlineExpr` to automatically (not) inline `e` if it's short (long) enough
     throwError "\
-      invalid field notation, function '{.ofConstName fullName}' does not have argument with type ({.ofConstName baseName} ...) that can be used, \
-      it must be explicit or implicit with a unique name"
+      Invalid field notation: Function '{.ofConstName fullName}' does not have a parameter of type `{.ofConstName baseName} ...` for which `{e}`
+      can be substituted\n\nNote: This parameter must be explicit, or implicit with a unique name"
 
 /-- Adds the `TermInfo` for the field of a projection. See `Lean.Parser.Term.identProjKind`. -/
 private def addProjTermInfo
