@@ -83,7 +83,7 @@ error: invalid field notation, function 'Bar.bar' does not have argument with ty
 ---
 info: fun f => sorry : (f : Bar false) → ?_ f
 -/
-#guard_msgs in #check fun (f : Bar false) => f.bar false
+#check fun (f : Bar false) => f.bar false
 
 /-- info: fun f => (fun x => false) f : Bar false → Bool -/
 #guard_msgs in #check fun (f : Bar false) => Bar.bar true false f
