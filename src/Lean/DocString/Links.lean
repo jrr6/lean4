@@ -35,13 +35,22 @@ def manualRoot : BaseIO String := do
         pure root
   return if r.endsWith "/" then r else r ++ "/"
 
+-- TODO: we may wish to make this more general for domains that require additional arguments
+/-- Maps `lean-manual` URL paths to their corresponding manual domains. -/
+private def domainMap : Std.HashMap String String :=
+  Std.HashMap.ofList [
+    ("section", "Verso.Genre.Manual.section"),
+    ("errorExplanation", "Manual.errorExplanation")
+  ]
+
 /--
 Rewrites links from the internal Lean manual syntax to the correct URL. This rewriting is an
 overapproximation: any parentheses containing the internal syntax of a Lean manual URL is rewritten.
 
 The internal syntax is the URL scheme `lean-manual` followed by the path `/KIND/MORE...`, where
-`KIND` is a kind of content being linked to. Presently, the only valid kind is `section`, and it
-requires that the remainder of the path consists of one element, which is a section or part identifier.
+`KIND` is a kind of content being linked to. Presently, the only valid kinds are `section` and
+`errorExplanation`, both of which require that the remainder of the path consists of one element,
+which is a section/part or error explanation identifier.
 
 The correct URL is based on a manual root URL, which is determined by the `LEAN_MANUAL_ROOT`
 environment variable. If this environment variable is not set, a manual root provided when Lean was
@@ -104,17 +113,19 @@ where
 
   rw (path : String) : Except String String := do
     match path.splitOn "/" with
-    | "section" :: args =>
+    | [] | [""] =>
+      throw "Missing documentation type"
+    | kind :: args =>
       if let [s] := args then
         if s.isEmpty then
           throw s!"Empty section ID"
-        return s!"find/?domain=Verso.Genre.Manual.section&name={s}"
+        if let some domain := domainMap.get? kind then
+          return s!"find/?domain={domain}&name={s}"
+        else
+          let acceptableKinds := ", ".intercalate <| domainMap.toList.map fun (k, _) => s!"'{k}'"
+          throw s!"Unknown documentation type '{kind}'. Expected one of the following:\n{acceptableKinds}"
       else
         throw s!"Expected one item after 'section', but got {args}"
-    | [] | [""] =>
-      throw "Missing documentation type"
-    | other :: _ =>
-      throw s!"Unknown documentation type '{other}'. Expected 'section'."
 
 
 /--
