@@ -1,6 +1,7 @@
 import Lean
 
 open Lean Meta Hint Tactic
+set_option hygiene false in
 elab foo:"foo" stx:"bar" "baz" : term => do
   let sug : Suggestions := {
     ref := stx
@@ -10,9 +11,14 @@ elab foo:"foo" stx:"bar" "baz" : term => do
       { suggestion := .string "cheers", postInfo? := " if you're feeling British", span? := stx }
     ]
   }
-  let msg := m!"your program is insufficiently friendly"
-  let msg := msg ++ (← MessageData.hint m!"consider adding a greeting to your program to make it friendlier" sug)
-  throwErrorAt stx (msg ++ .note "there are good reasons to do this")
+  let msg := m!"Your program is insufficiently friendly" ++
+    (← MessageData.hint m!"Consider adding a greeting to your program to make it friendlier" sug)
+  let otherSug : Suggestions := {
+    ref := stx
+    suggestions := #["let x := 5; x", (← `(let x := 6; x))]
+  }
+  let fullMsg := msg ++ .note "There are good reasons to do this" ++ (← MessageData.hint m!"Or try these!" otherSug)
+  throwErrorAt stx fullMsg
 
 #eval foo bar baz
 
