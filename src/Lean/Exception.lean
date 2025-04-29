@@ -8,6 +8,7 @@ import Lean.Message
 import Lean.InternalExceptionId
 import Lean.Data.Options
 import Lean.Util.MonadCache
+import Lean.EnvExtension
 
 namespace Lean
 
@@ -18,6 +19,12 @@ Error descriptors uniquely identify each thrown or logged error.
 -/
 -- Alternative: define this as `structure ErrorDescr where` and make `descr : Option ErrorDescr`
 abbrev ErrorDescr := Name
+
+builtin_initialize errorDescrExt : SimplePersistentEnvExtension (Name × Name) (NameMap Name) ←
+  registerSimplePersistentEnvExtension {
+    addEntryFn := fun s (n, v) => s.insert n v
+    addImportedFn := fun entries => RBMap.ofList entries.flatten.toList
+  }
 
 /-- Exception type used in most Lean monads -/
 inductive Exception where
