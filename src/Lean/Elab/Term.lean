@@ -1952,10 +1952,12 @@ private def mkConsts (candidates : List (Name × List String)) (explicitLevels :
 
 def resolveName (stx : Syntax) (n : Name) (preresolved : List Syntax.Preresolved) (explicitLevels : List Level) (expectedType? : Option Expr := none) : TermElabM (List (Expr × List String)) := do
   addCompletionInfo <| CompletionInfo.id stx stx.getId (danglingDot := false) (← getLCtx) expectedType?
+  trace[Elab.app] "resolving name {n}"
   if let some (e, projs) ← resolveLocalName n then
     unless explicitLevels.isEmpty do
       throwError "invalid use of explicit universe parameters, '{e}' is a local variable"
     return [(e, projs)]
+  trace[Elab.app] "failed to locally resolve {n}"
   let preresolved := preresolved.filterMap fun
     | .decl n projs => some (n, projs)
     | _             => none
@@ -1964,11 +1966,14 @@ def resolveName (stx : Syntax) (n : Name) (preresolved : List Syntax.Preresolved
   if let some (e, projs) := preresolved.findSome? fun (n, projs) => ctx.sectionFVars.find? n |>.map (·, projs) then
     return [(e, projs)]  -- section variables should shadow global decls
   if preresolved.isEmpty then
+    trace[Elab.app] "preresolved empty for {n}"
     process (← realizeGlobalName n)
   else
+    trace[Elab.app] "preresolved populated for {n}: {preresolved}"
     process preresolved
 where
   process (candidates : List (Name × List String)) : TermElabM (List (Expr × List String)) := do
+    trace[Elab.app] "Processing candidates for name {n}: {candidates}"
     if candidates.isEmpty then
       if (← read).autoBoundImplicit &&
            !(← read).autoBoundImplicitForbidden n &&

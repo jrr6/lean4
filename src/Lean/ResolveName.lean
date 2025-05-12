@@ -400,6 +400,7 @@ def resolveLocalName [Monad m] [MonadResolveName m] [MonadEnv m] [MonadLCtx m] (
   let auxDeclToFullName := (← getLCtx).auxDeclToFullName
   let currNamespace ← getCurrNamespace
   let view := extractMacroScopes n
+  dbg_trace "got view: {n} -> {view.name}"
   /- Simple case. "Match" function for regular local declarations. -/
   let matchLocalDecl? (localDecl : LocalDecl) (givenName : Name) : Option LocalDecl := do
     guard (localDecl.userName == givenName)
@@ -491,6 +492,7 @@ def resolveLocalName [Monad m] [MonadResolveName m] [MonadEnv m] [MonadLCtx m] (
   let findLocalDecl? (givenNameView : MacroScopesView) (skipAuxDecl : Bool) : Option LocalDecl :=
     let givenName := givenNameView.review
     let localDecl? := lctx.decls.findSomeRev? fun localDecl? => do
+      dbg_trace "checking if {localDecl?.map (·.userName)} matches {n}"
       let localDecl ← localDecl?
       if localDecl.isAuxDecl then
         guard (!skipAuxDecl)
@@ -501,10 +503,13 @@ def resolveLocalName [Monad m] [MonadResolveName m] [MonadEnv m] [MonadLCtx m] (
       else
         matchLocalDecl? localDecl givenName
     if localDecl?.isSome || skipAuxDecl then
+      dbg_trace "found an lctx match {localDecl?.map (·.userName)} for {n}"
       localDecl?
     else
+      dbg_trace "searching lctx after no match found for {n}"
       -- Search auxDecls again trying an exact match of the given name
       lctx.decls.findSomeRev? fun localDecl? => do
+        dbg_trace "checking if {localDecl?.map (·.userName)} is an exact match for {n}"
         let localDecl ← localDecl?
         guard localDecl.isAuxDecl
         matchLocalDecl? localDecl givenName
@@ -531,6 +536,7 @@ def resolveLocalName [Monad m] [MonadResolveName m] [MonadEnv m] [MonadLCtx m] (
   See issue #1850.
   -/
   let rec loop (n : Name) (projs : List String) (globalDeclFound : Bool) := do
+    dbg_trace s!"looping for {n}"
     let givenNameView := { view with name := n }
     /-
     Note that we use `globalDeclFound` instead of `globalDeclFoundNext` in the following test.
@@ -546,17 +552,24 @@ def resolveLocalName [Monad m] [MonadResolveName m] [MonadEnv m] [MonadLCtx m] (
     ```
     -/
     match findLocalDecl? givenNameView (skipAuxDecl := globalDeclFound && !projs.isEmpty) with
-    | some decl => return some (decl.toExpr, projs)
-    | none => match n with
+    | some decl =>
+      dbg_trace "returning for {n}: {decl.toExpr}, {projs}"
+      return some (decl.toExpr, projs)
+    | none =>
+      dbg_trace s!"{n}: could not find local decl"
+      match n with
       | .str pre s =>
         let mut globalDeclFoundNext := globalDeclFound
         unless globalDeclFound do
+          dbg_trace s!"trying to find global: {n}"
           let r ← resolveGlobalName givenNameView.review
           let r := r.filter fun (_, fieldList) => fieldList.isEmpty
           unless r.isEmpty do
             globalDeclFoundNext := true
         loop pre (s::projs) globalDeclFoundNext
-      | _ => return none
+      | _ =>
+        dbg_trace s!"got a bad name: {n}"
+        return none
   loop view.name [] (globalDeclFound := false)
 
 /--

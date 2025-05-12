@@ -78,6 +78,7 @@ def evalAlt (mvarId : MVarId) (alt : Syntax) (addInfo : TermElabM Unit) : Tactic
             mvarId.withContext do
               let mvarDecl ← mvarId.getDecl
               -- Elaborate ensuring that `_` is interpreted as `?_`.
+              trace[Elab.cases] "elaborating alternative: {alt}"
               let (val, gs') ← elabTermWithHoles rhs mvarDecl.type `induction (parentTag? := mvarDecl.userName) (allowNaturalHoles := true)
               mvarId.assign val
               setGoals gs'

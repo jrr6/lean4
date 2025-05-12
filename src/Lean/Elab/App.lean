@@ -33,7 +33,11 @@ instance : ToString NamedArg where
   toString s := "(" ++ toString s.name ++ " := " ++ toString s.val ++ ")"
 
 def throwInvalidNamedArg (namedArg : NamedArg) (fn? : Option Name) : TermElabM α :=
-  withRef namedArg.ref <| match fn? with
+  withRef namedArg.ref do
+    -- if (← readThe TermElab.Context).variables namedArg.name
+    let extra := if (← readThe Term.Context).sectionVars.contains namedArg.name then
+      "Cannot " else ""
+    match fn? with
     | some fn => throwError "invalid argument name '{namedArg.name}' for function '{fn}'"
     | none    => throwError "invalid argument name '{namedArg.name}' for function"
 
@@ -1458,7 +1462,10 @@ false, no elaboration function executed by `x` will reset it to
 private partial def elabAppFnId (fIdent : Syntax) (fExplicitUnivs : List Level) (lvals : List LVal)
     (namedArgs : Array NamedArg) (args : Array Arg) (expectedType? : Option Expr) (explicit ellipsis overloaded : Bool) (acc : Array (TermElabResult Expr))
     : TermElabM (Array (TermElabResult Expr)) := do
+  let decls := (← getLCtx).decls.toArray.map (·.map (·.userName))
+  trace[Elab.app] "resolving app fn id {fIdent} with decls {decls}"
   let funLVals ← withRef fIdent <| resolveName' fIdent fExplicitUnivs expectedType?
+  trace[Elab.app] "app fn id {fIdent} resolution: {funLVals}"
   let overloaded := overloaded || funLVals.length > 1
   -- Set `errToSorry` to `false` if `funLVals` > 1. See comment above about the interaction between `errToSorry` and `observing`.
   withReader (fun ctx => { ctx with errToSorry := funLVals.length == 1 && ctx.errToSorry }) do
