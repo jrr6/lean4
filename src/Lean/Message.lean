@@ -389,7 +389,7 @@ structure BaseMessage (α : Type u) where
   isSilent       : Bool := false
   caption        : String          := ""
   /-- A name for a warning or error diagnostic associated with an explanation. -/
-  diagnosticName : Name := .anonymous
+  errorDescr? : Option ErrorDescr := none
   /-- The content of the message. -/
   data           : α
   deriving Inhabited, ToJson, FromJson

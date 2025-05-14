@@ -18,7 +18,8 @@ An error descriptor for thrown and logged errors.
 Error descriptors uniquely identify each thrown or logged error.
 -/
 -- Alternative: define this as `structure ErrorDescr where` and make `descr : Option ErrorDescr`
-abbrev ErrorDescr := Name
+structure ErrorDescr where
+  explanationName? : Option Name
 
 builtin_initialize errorDescrExt : SimplePersistentEnvExtension (Name × Name) (NameMap Name) ←
   registerSimplePersistentEnvExtension {
@@ -29,7 +30,7 @@ builtin_initialize errorDescrExt : SimplePersistentEnvExtension (Name × Name) (
 /-- Exception type used in most Lean monads -/
 inductive Exception where
   /-- Error messages that are displayed to users. `ref` is used to provide position information. -/
-  | error (ref : Syntax) (msg : MessageData) (descr : ErrorDescr := .anonymous)
+  | error (ref : Syntax) (msg : MessageData) (descr? : Option ErrorDescr := none)
   /--
   Internal exceptions that are not meant to be seen by users.
   Examples: "postpone elaboration", "stuck at universe constraint", etc.
