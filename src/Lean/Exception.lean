@@ -21,12 +21,6 @@ Error descriptors uniquely identify each thrown or logged error.
 structure ErrorDescr where
   explanationName? : Option Name
 
-builtin_initialize errorDescrExt : SimplePersistentEnvExtension (Name × Name) (NameMap Name) ←
-  registerSimplePersistentEnvExtension {
-    addEntryFn := fun s (n, v) => s.insert n v
-    addImportedFn := fun entries => RBMap.ofList entries.flatten.toList
-  }
-
 /-- Exception type used in most Lean monads -/
 inductive Exception where
   /-- Error messages that are displayed to users. `ref` is used to provide position information. -/

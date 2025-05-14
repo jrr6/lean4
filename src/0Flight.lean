@@ -1,6 +1,7 @@
 import Lean
 
-open Lean hiding ErrorDescr
+-- open Lean hiding ErrorDescr
+open Lean
 
 structure ErrorDescr where
   explanationName : Option Name
@@ -16,7 +17,23 @@ def ErrorDescr.new {α} [inst : TypeName α] (explanationName : Name) (data : α
   instDataTypeName := inst
   name
 
-def myDescr := ErrorDescr.new
+def Exception.matchDescr? : Exception → (d : ErrorDescr) → Option d.DataType
+  | .error ref msg (some descr) =>
+    if descr.name == d.name then
+      descr.data.get? d.DataType
+    else
+      sorry
+  | _ => none
+
+def Exception.matchDescrAt? : Exception → Syntax → (d : ErrorDescr) → Option d.DataType
+  | .error ref msg (some descr), atRef =>
+    if descr.name == d.name && atRef.span == ref.span then
+      descr.data.get? d.DataType
+    else
+      sorry
+  | _, _ => none
+
+def myDescr := ErrorDescr.new `Lean.MyGreatExplanation
 
 deriving instance TypeName for Nat
 
