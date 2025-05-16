@@ -79,16 +79,21 @@ def Bar.bar : Bar true := {}
 /-- info: fun f => (fun x => false) f : Bar false → Bool -/
 #guard_msgs in #check fun (f : Bar false) => Bar.bar false f
 /--
-error: invalid field notation, function 'Bar.bar' does not have argument with type (Bar ...) that can be used, it must be explicit or implicit with a unique name
+error: Invalid field notation: Function 'Bar.bar' does not have a parameter of type `Bar ...` for which `f` can be substituted
+
+Note: Such a parameter must be explicit, or implicit with a unique name, to be used by field notation
 ---
 info: fun f => sorry : (f : Bar false) → ?_ f
 -/
+#guard_msgs in
 #check fun (f : Bar false) => f.bar false
 
 /-- info: fun f => (fun x => false) f : Bar false → Bool -/
 #guard_msgs in #check fun (f : Bar false) => Bar.bar true false f
 /--
-error: invalid field notation, function 'Bar.bar' does not have argument with type (Bar ...) that can be used, it must be explicit or implicit with a unique name
+error: Invalid field notation: Function 'Bar.bar' does not have a parameter of type `Bar ...` for which `f` can be substituted
+
+Note: Such a parameter must be explicit, or implicit with a unique name, to be used by field notation
 ---
 info: fun f => sorry : (f : Bar false) → ?_ f
 -/

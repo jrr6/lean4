@@ -1,5 +1,8 @@
-1705.lean:1:13-1:16: error: function expected at
+1705.lean:1:13-1:16: error: Function expected at
   T
-term has type
+but this term has type
   ?m
+
+Note: Expected a function because this term is being applied to the argument
+  u
 1705.lean:1:18-1:19: error: unexpected identifier; expected command
