@@ -1,8 +1,19 @@
-magical.lean:2:21-2:56: error: invalid projection, the expression
-  Exists.intro 1 (Nat.le_refl 1)
-is a proposition and has type
-  ∃ x, x ≥ 1
-but the projected value is not, it has type
+magical.lean:2:21-2:56: error: Invalid projection: Cannot project a value of non-propositional type
   Nat
+from the expression
+  Exists.intro 1 (Nat.le_refl 1)
+which has propositional type
+  ∃ x, x ≥ 1
 magical.lean:5:8-5:18: error: (kernel) invalid projection
   h.2
+magical.lean:10:45-10:49: error: Invalid projection: Index `2` is invalid for this structure; the only valid index is 1
+
+Note: The expression
+  h2
+has type
+  P m h'
+which has only 1 field
+magical.lean:11:22-11:25: error: Invalid projection: Expected a value whose type is a structure
+  h
+has type
+  Nat
