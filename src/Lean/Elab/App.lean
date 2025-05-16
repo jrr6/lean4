@@ -14,6 +14,7 @@ import Lean.Elab.Binders
 import Lean.Elab.SyntheticMVars
 import Lean.Elab.Arg
 import Lean.Elab.RecAppSyntax
+import Lean.PrettyPrinter
 
 namespace Lean.Elab.Term
 open Meta
@@ -33,6 +34,11 @@ instance : ToString Arg where
   toString
     | .stx  val => toString val
     | .expr val => toString val
+
+instance : ToMessageData Arg where
+  toMessageData
+    | .stx  val => toMessageData val
+    | .expr val => toMessageData val
 
 instance : ToString NamedArg where
   toString s := "(" ++ toString s.name ++ " := " ++ toString s.val ++ ")"
@@ -215,11 +221,13 @@ private def synthesizePendingAndNormalizeFunType : M Unit := do
             throwInvalidNamedArg namedArg f.constName!
           else
             throwInvalidNamedArg namedArg none
+      -- Help users see if this is actually due to an indentation mismatch/other parsing mishaps:
       let extra :=
         if let some (arg : Arg) := s.args[0]? then
-          m!"\n\nNote: Expected a function because this term is being applied to the argument{indentD <| toMessageData arg}"
+          .note m!"Expected a function because this term is being applied to the argument\
+            {indentD <| toMessageData arg}"
         else m!""
-      throwError "Invalid application expression: Function expected at{indentExpr s.f}\nbut this term has type{indentExpr fType}{extra}"
+      throwError "Function expected at{indentExpr s.f}\nbut this term has type{indentExpr fType}{extra}"
 
 /-- Normalize and return the function type. -/
 private def normalizeFunType : M Expr := do
@@ -1280,9 +1288,12 @@ private def resolveLValAux (e : Expr) (eType : Expr) (lval : LVal) : TermElabM L
             So, we don't projection functions for it. Thus, we use `Expr.proj` -/
           return LValResolution.projIdx structName (idx - 1)
       else
-        let fields := if numFields = 1 then "field" else "fields"
-        throwError m!"Invalid projection: Index must be between 1 and {numFields}:\
-          {indentExpr e}\nhas type{indentExpr eType}\nwhich has only {numFields} {fields}"
+        let (fields, bounds) := if numFields == 1 then
+          (m!"field", m!"the only valid index is 1")
+        else
+          (m!"fields", m!"it must be between 1 and {numFields}")
+        throwError m!"Invalid projection: Index `{idx}` is invalid for this structure; {bounds}"
+          ++ .note m!"The expression{indentExpr e}\nhas type{indentExpr eType}\nwhich has only {numFields} {fields}"
   | some structName, LVal.fieldName _ fieldName _ fullRef =>
     let env ← getEnv
     if isStructure env structName then
@@ -1440,10 +1451,15 @@ where
         return ← go (mkAppN f xs) fType' argIdx remainingNamedArgs unusableNamedArgs allowNamed
       if let some f' ← coerceToFunction? (mkAppN f xs) then
         return ← go f' (← inferType f') argIdx remainingNamedArgs unusableNamedArgs false
-    -- TODO: use `inlineExpr` to automatically (not) inline `e` if it's short (long) enough
-    throwError "\
-      Invalid field notation: Function '{.ofConstName fullName}' does not have a parameter of type `{.ofConstName baseName} ...` for which `{e}`
-      can be substituted\n\nNote: This parameter must be explicit, or implicit with a unique name"
+    let tyCtorMsg := MessageData.ofLazyM do
+      let some decl := (← getEnv).find? baseName | return .ofConstName baseName
+      if decl.type.isForall then
+        return m!"{.ofConstName baseName} ..."
+      else
+        return .ofConstName baseName
+    throwError m!"Invalid field notation: Function '{.ofConstName fullName}' does not have a \
+      parameter of type `{tyCtorMsg}` for which{inlineExpr e}can be substituted"
+      ++ .note m!"Such a parameter must be explicit, or implicit with a unique name, to be used by field notation"
 
 /-- Adds the `TermInfo` for the field of a projection. See `Lean.Parser.Term.identProjKind`. -/
 private def addProjTermInfo

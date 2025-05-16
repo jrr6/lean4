@@ -1,8 +1,23 @@
-unsound.lean:1:32-1:35: error: invalid projection, the expression
-  h
-is a proposition and has type
-  ∃ x, True
-but the projected value is not, it has type
+unsound.lean:2:2-2:25: error: tactic 'cases' failed, nested error:
+tactic 'induction' failed, recursor 'Exists.casesOn' can only eliminate into Prop
+α : Sort ?u
+p : α → Prop
+motive : (∃ x, p x) → Sort ?u
+h_1 : (w : α) → (h : p w) → motive ⋯
+x✝ : ∃ x, p x
+⊢ motive x✝ after processing
+  _
+the dependent pattern matcher can solve the following kinds of equations
+- <var> = <term> and <term> = <var>
+- <term> = <term> where the terms are definitionally equal
+- <constructor> = <constructor>, examples: List.cons x xs = List.cons y ys, and List.cons x xs = List.nil
+unsound.lean:5:2-5:3: error: failed to generate projection 'Existy.w' for the 'Prop'-valued type 'Existy', field must be a proof, but it has type
+  α
+unsound.lean:8:32-8:35: error: Invalid projection: Cannot project a value of non-propositional type
   Nat
-unsound.lean:3:28-3:31: error: unknown identifier 'foo'
-unsound.lean:3:47-3:50: error: unknown identifier 'foo'
+from the expression
+  h
+which has propositional type
+  ∃ x, True
+unsound.lean:10:28-10:31: error: unknown identifier 'foo'
+unsound.lean:10:47-10:50: error: unknown identifier 'foo'

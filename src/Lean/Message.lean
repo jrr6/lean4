@@ -638,9 +638,9 @@ def inlineExpr (e : Expr) (maxInlineLength := 30) : MessageData :=
       if (← msg.formatLength ctx) > maxInlineLength then
         return indentD msg ++ "\n"
       else
-        return " " ++ msg ++ " ")
+        return " `" ++ msg ++ "` ")
     (fun mctx => instantiateMVarsCore mctx e |>.1.hasSyntheticSorry)
-    (fun () => return " " ++ MessageData.ofExpr e ++ " ")
+    (fun () => return " `" ++ MessageData.ofExpr e ++ "` ")
 
 /-- Atom quotes -/
 def aquote (msg : MessageData) : MessageData :=
