@@ -32,7 +32,7 @@ def checkSimprocType (declName : Name) : CoreM Bool := do
   match decl.type with
   | .const ``Simproc _ => pure false
   | .const ``DSimproc _ => pure true
-  | _ => throwError "unexpected type at '{declName}', 'Simproc' expected"
+  | _ => throwError "unexpected type at `{declName}`, 'Simproc' expected"
 
 namespace Command
 

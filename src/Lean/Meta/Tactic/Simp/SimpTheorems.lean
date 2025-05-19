@@ -319,7 +319,7 @@ def SimpTheorems.erase [Monad m] [MonadLog m] [AddMessageContext m] [MonadOption
     if d.isLemma thmId' then
       return d.eraseCore thmId'
 
-  logWarning m!"'{thmId.key}' does not have [simp] attribute"
+  logWarning m!"`{thmId.key}` does not have [simp] attribute"
   return d
 
 private partial def isPerm : Expr → Expr → MetaM Bool

@@ -64,7 +64,7 @@ private def throwCtorExpected {α} (ident : Option Syntax) : M α := do
   if candidates.size = 0 then
     throwError message
   else if h : candidates.size = 1 then
-    throwError message ++ m!"\n\nSuggestion: '{candidates[0]}' is similar"
+    throwError message ++ m!"\n\nSuggestion: `{candidates[0]}` is similar"
   else
     let sorted := candidates.qsort (·.toString < ·.toString)
     let diff :=
@@ -152,7 +152,7 @@ private def processVar (idStx : Syntax) : M Syntax := do
   unless id.eraseMacroScopes.isAtomic do
     throwError "invalid pattern variable, must be atomic"
   if (← get).found.contains id then
-    throwError "invalid pattern, variable '{id}' occurred more than once"
+    throwError "invalid pattern, variable `{id}` occurred more than once"
   modify fun s => { s with vars := s.vars.push idStx, found := s.found.insert id }
   return idStx
 

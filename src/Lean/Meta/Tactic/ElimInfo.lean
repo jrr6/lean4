@@ -113,7 +113,7 @@ where
       if elimInfo.targetsPos.contains argIdx then
         if bi.isExplicit then
           unless targetIdx < targets.size do
-            throwError "insufficient number of targets for '{elimInfo.elimExpr}'"
+            throwError "insufficient number of targets for `{elimInfo.elimExpr}`"
           let target := targets[targetIdx]!
           let targetType ← inferType target
           unless (← isDefEq d targetType) do
@@ -126,7 +126,7 @@ where
         collect (b.instantiate1 (← mkFreshExprMVar d)) (argIdx+1) targetIdx implicits targets'
     | _ =>
       unless targetIdx = targets.size do
-        throwError "extra targets for '{elimInfo.elimExpr}'"
+        throwError "extra targets for `{elimInfo.elimExpr}`"
       return (implicits, targets')
 
 structure CustomEliminator where

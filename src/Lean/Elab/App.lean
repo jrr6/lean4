@@ -34,8 +34,8 @@ instance : ToString NamedArg where
 
 def throwInvalidNamedArg (namedArg : NamedArg) (fn? : Option Name) : TermElabM α :=
   withRef namedArg.ref <| match fn? with
-    | some fn => throwError "invalid argument name '{namedArg.name}' for function '{fn}'"
-    | none    => throwError "invalid argument name '{namedArg.name}' for function"
+    | some fn => throwError "invalid argument name `{namedArg.name}` for function `{fn}`"
+    | none    => throwError "invalid argument name `{namedArg.name}` for function"
 
 private def ensureArgType (f : Expr) (arg : Expr) (expectedType : Expr) : TermElabM Expr := do
   try
@@ -1165,8 +1165,8 @@ private partial def findMethod? (structName fieldName : Name) : MetaM (Option (N
     | []          => return none
     | [fullName'] => return some (structName', fullName')
     | _ => throwError "\
-      invalid field notation '{fieldName}', the name '{fullName}' is ambiguous, possible interpretations: \
-      {MessageData.joinSep (candidates.map (m!"'{.ofConstName ·}'")) ", "}"
+      invalid field notation `{fieldName}`, the name `{fullName}` is ambiguous, possible interpretations: \
+      {MessageData.joinSep (candidates.map (m!"`{.ofConstName ·}`")) ", "}"
   -- Optimization: the first element of the resolution order is `structName`,
   -- so we can skip computing the resolution order in the common case
   -- of the name resolving in the `structName` namespace.
@@ -1222,7 +1222,7 @@ private def resolveLValAux (e : Expr) (eType : Expr) (lval : LVal) : TermElabM L
     -- Then search the environment
     if let some (baseStructName, fullName) ← findMethod? structName (.mkSimple fieldName) then
       return LValResolution.const baseStructName structName fullName
-    let msg := mkUnknownIdentifierMessage m!"invalid field '{fieldName}', the environment does not contain '{Name.mkStr structName fieldName}'"
+    let msg := mkUnknownIdentifierMessage m!"invalid field `{fieldName}`, the environment does not contain `{Name.mkStr structName fieldName}`"
     throwLValError e eType msg
   | none, LVal.fieldName _ _ (some suffix) _ =>
     if e.isConst then
@@ -1347,7 +1347,7 @@ where
                if there isn't an argument with the same name occurring before it. -/
             if !allowNamed || unusableNamedArgs.contains xDecl.userName then
               throwError "\
-                invalid field notation, function '{.ofConstName fullName}' has argument with the expected type\
+                invalid field notation, function `{.ofConstName fullName}` has argument with the expected type\
                 {indentExpr xDecl.type}\n\
                 but it cannot be used"
             else
@@ -1364,7 +1364,7 @@ where
       if let some f' ← coerceToFunction? (mkAppN f xs) then
         return ← go f' (← inferType f') argIdx remainingNamedArgs unusableNamedArgs false
     throwError "\
-      invalid field notation, function '{.ofConstName fullName}' does not have argument with type ({.ofConstName baseName} ...) that can be used, \
+      invalid field notation, function `{.ofConstName fullName}` does not have argument with type ({.ofConstName baseName} ...) that can be used, \
       it must be explicit or implicit with a unique name"
 
 /-- Adds the `TermInfo` for the field of a projection. See `Lean.Parser.Term.identProjKind`. -/
@@ -1396,7 +1396,7 @@ private def elabAppLValsAux (namedArgs : Array NamedArg) (args : Array Arg) (exp
       let f ← mkBaseProjections baseStructName structName f
       let some info := getFieldInfo? (← getEnv) baseStructName fieldName | unreachable!
       if isPrivateNameFromImportedModule (← getEnv) info.projFn then
-        throwError "field '{fieldName}' from structure '{structName}' is private"
+        throwError "field `{fieldName}` from structure `{structName}` is private"
       let projFn ← mkConst info.projFn
       let projFn ← addProjTermInfo lval.getRef projFn
       if lvals.isEmpty then

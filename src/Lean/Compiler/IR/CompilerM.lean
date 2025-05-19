@@ -110,7 +110,7 @@ def containsDecl (n : Name) : CompilerM Bool :=
   return (← findDecl n).isSome
 
 def getDecl (n : Name) : CompilerM Decl := do
-  let (some decl) ← findDecl n | throw s!"unknown declaration '{n}'"
+  let (some decl) ← findDecl n | throw s!"unknown declaration `{n}`"
   return decl
 
 @[export lean_ir_add_decl]
@@ -144,7 +144,7 @@ def containsDecl' (n : Name) (decls : Array Decl) : CompilerM Bool := do
     containsDecl n
 
 def getDecl' (n : Name) (decls : Array Decl) : CompilerM Decl := do
-  let (some decl) ← findDecl' n decls | throw s!"unknown declaration '{n}'"
+  let (some decl) ← findDecl' n decls | throw s!"unknown declaration `{n}`"
   return decl
 
 @[export lean_decl_get_sorry_dep]

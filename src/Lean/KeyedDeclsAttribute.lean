@@ -101,7 +101,7 @@ def mkStateOfTable (table : Table γ) : ExtensionState γ := {
 
 def ExtensionState.erase (s : ExtensionState γ) (attrName : Name) (declName : Name) : CoreM (ExtensionState γ) := do
   unless s.declNames.contains declName do
-    throwError "'{declName}' does not have [{attrName}] attribute"
+    throwError "`{declName}` does not have [{attrName}] attribute"
   return { s with erased := s.erased.insert declName, declNames := s.declNames.erase declName }
 
 protected unsafe def init {γ} (df : Def γ) (attrDeclName : Name := by exact decl_name%) : IO (KeyedDeclsAttribute γ) := do
@@ -123,18 +123,18 @@ protected unsafe def init {γ} (df : Def γ) (attrDeclName : Name := by exact de
       name  := df.builtinName
       descr := "(builtin) " ++ df.descr
       add   := fun declName stx kind => do
-        unless kind == AttributeKind.global do throwError "invalid attribute '{df.builtinName}', must be global"
+        unless kind == AttributeKind.global do throwError "invalid attribute `{df.builtinName}`, must be global"
         let key ← df.evalKey true stx
         let decl ← getConstInfo declName
         match decl.type with
         | Expr.const c _ =>
-          if c != df.valueTypeName then throwError "unexpected type at '{declName}', '{df.valueTypeName}' expected"
+          if c != df.valueTypeName then throwError "unexpected type at `{declName}`, `{df.valueTypeName}` expected"
           else
             /- builtin_initialize @addBuiltin $(mkConst valueTypeName) $(mkConst attrDeclName) $(key) $(declName) $(mkConst declName) -/
             let val := mkAppN (mkConst ``addBuiltin) #[mkConst df.valueTypeName, mkConst attrDeclName, toExpr key, toExpr declName, mkConst declName]
             declareBuiltin declName val
             df.onAdded true declName
-        | _ => throwError "unexpected type at '{declName}', '{df.valueTypeName}' expected"
+        | _ => throwError "unexpected type at `{declName}`, `{df.valueTypeName}` expected"
       applicationTime := AttributeApplicationTime.afterCompilation
     }
   registerBuiltinAttribute {

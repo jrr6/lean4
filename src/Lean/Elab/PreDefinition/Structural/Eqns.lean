@@ -59,7 +59,7 @@ where
         else if let some mvarIds ← splitTarget? mvarId then
           mvarIds.forM go
         else
-          throwError "failed to generate equational theorem for '{declName}'\n{MessageData.ofGoal mvarId}"
+          throwError "failed to generate equational theorem for `{declName}`\n{MessageData.ofGoal mvarId}"
 
 def mkEqns (info : EqnInfo) : MetaM (Array Name) :=
   withOptions (tactic.hygienic.set · false) do

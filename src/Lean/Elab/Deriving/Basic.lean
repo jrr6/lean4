@@ -80,10 +80,10 @@ def registerDerivingHandler (className : Name) (handler : DerivingHandler) : IO 
     | none => m.insert className [handler]
 
 def defaultHandler (className : Name) (typeNames : Array Name) : CommandElabM Unit := do
-  throwError "default handlers have not been implemented yet, class: '{className}' types: {typeNames}"
+  throwError "default handlers have not been implemented yet, class: `{className}` types: {typeNames}"
 
 def applyDerivingHandlers (className : Name) (typeNames : Array Name) : CommandElabM Unit := do
-  withTraceNode `Elab.Deriving (fun _ => return m!"running deriving handlers for '{className}'") do
+  withTraceNode `Elab.Deriving (fun _ => return m!"running deriving handlers for `{className}`") do
     match (← derivingHandlersRef.get).find? className with
     | some handlers =>
       for handler in handlers do

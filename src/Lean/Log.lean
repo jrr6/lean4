@@ -107,6 +107,6 @@ def logInfo (msgData : MessageData) : m Unit :=
 
 /-- Log the error message "unknown declaration" -/
 def logUnknownDecl (declName : Name) : m Unit :=
-  logError m!"unknown declaration '{declName}'"
+  logError m!"unknown declaration `{declName}`"
 
 end Lean

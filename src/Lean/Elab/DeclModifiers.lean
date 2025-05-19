@@ -26,19 +26,19 @@ def checkNotAlreadyDeclared {m} [Monad m] [MonadEnv m] [MonadError m] [MonadInfo
   if env.contains declName then
     addInfo declName
     match privateToUserName? declName with
-    | none          => throwError "'{.ofConstName declName true}' has already been declared"
-    | some declName => throwError "private declaration '{.ofConstName declName true}' has already been declared"
+    | none          => throwError "`{.ofConstName declName true}` has already been declared"
+    | some declName => throwError "private declaration `{.ofConstName declName true}` has already been declared"
   if isReservedName env declName then
-    throwError "'{declName}' is a reserved name"
+    throwError "`{declName}` is a reserved name"
   if env.contains (mkPrivateName env declName) then
     addInfo (mkPrivateName env declName)
-    throwError "a private declaration '{.ofConstName declName true}' has already been declared"
+    throwError "a private declaration `{.ofConstName declName true}` has already been declared"
   match privateToUserName? declName with
   | none => pure ()
   | some declName =>
     if env.contains declName then
       addInfo declName
-      throwError "a non-private declaration '{.ofConstName declName true}' has already been declared"
+      throwError "a non-private declaration `{.ofConstName declName true}` has already been declared"
 
 /-- Declaration visibility modifier. That is, whether a declaration is regular, protected or private. -/
 inductive Visibility where
@@ -180,7 +180,7 @@ def checkIfShadowingStructureField (declName : Name) : m Unit := do
       let fieldNames := getStructureFieldsFlattened (← getEnv) pre
       for fieldName in fieldNames do
         if pre ++ fieldName == declName then
-          throwError "invalid declaration name '{declName}', structure '{pre}' has field '{fieldName}'"
+          throwError "invalid declaration name `{declName}`, structure `{pre}` has field `{fieldName}`"
   | _ => pure ()
 
 def mkDeclName (currNamespace : Name) (modifiers : Modifiers) (shortName : Name) : m (Name × Name) := do
@@ -193,7 +193,7 @@ def mkDeclName (currNamespace : Name) (modifiers : Modifiers) (shortName : Name)
     throwError "invalid declaration name `_root_`, `_root_` is a prefix used to refer to the 'root' namespace"
   let declName := if isRootName then { view with name := name.replacePrefix `_root_ Name.anonymous }.review else currNamespace ++ shortName
   if isRootName then
-    let .str p s := name | throwError "invalid declaration name '{name}'"
+    let .str p s := name | throwError "invalid declaration name `{name}`"
     shortName := Name.mkSimple s
     currNamespace := p.replacePrefix `_root_ Name.anonymous
   checkIfShadowingStructureField declName

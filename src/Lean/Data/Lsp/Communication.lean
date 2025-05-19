@@ -61,7 +61,7 @@ section
     match fields.lookup "Content-Length" with
     | some length => match length.toNat? with
       | some n => pure n
-      | none   => throw $ userError s!"Content-Length header field value '{length}' is not a Nat"
+      | none   => throw $ userError s!"Content-Length header field value `{length}` is not a Nat"
     | none => throw $ userError s!"No Content-Length field in header: {fields}"
 
   def readLspMessage (h : FS.Stream) : IO Message := do

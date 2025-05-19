@@ -99,7 +99,7 @@ private def addDeclToUnfoldOrTheorem (config : Meta.ConfigWithKey) (thms : SimpT
       thms.addConst declName (post := post) (inv := inv)
     else
       if inv then
-        throwError "invalid '←' modifier, '{declName}' is a declaration name to be unfolded"
+        throwError "invalid '←' modifier, `{declName}` is a declaration name to be unfolded"
       if kind == .dsimp then
         return thms.addDeclToUnfoldCore declName
       else
@@ -112,7 +112,7 @@ private def addDeclToUnfoldOrTheorem (config : Meta.ConfigWithKey) (thms : SimpT
     else if !decl.isLet then
       throwError "invalid argument, variable is not a proposition or let-declaration"
     else if inv then
-      throwError "invalid '←' modifier, '{e}' is a let-declaration name to be unfolded"
+      throwError "invalid '←' modifier, `{e}` is a let-declaration name to be unfolded"
     else
       return thms.addLetDeclToUnfold fvarId
   else

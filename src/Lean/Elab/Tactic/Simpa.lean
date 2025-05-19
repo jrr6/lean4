@@ -82,7 +82,7 @@ deriving instance Repr for UseImplicitLambdaResult
             if let .fvar h := e then
               if (← getLCtx).getRoundtrippingUserName? h |>.isSome then
                 logLint linter.unnecessarySimpa (← getRef)
-                  m!"try 'simp at {Expr.fvar h}' instead of 'simpa using {Expr.fvar h}'"
+                  m!"try 'simp at {Expr.fvar h}` instead of 'simpa using {Expr.fvar h}`"
         g.assign gCopy
         pure stats
       else if let some ldecl := (← getLCtx).findFromUserName? `this then

@@ -35,11 +35,11 @@ Returns that and the last projection function for `x` itself.
 -/
 private def expandFieldName (structName : Name) (fieldName : Name) : MetaM (Name × Name) := do
   let env ← getEnv
-  unless isStructure env structName do throwError "'{.ofConstName structName}' is not a structure"
+  unless isStructure env structName do throwError "`{.ofConstName structName}` is not a structure"
   let some baseStructName := findField? env structName fieldName
-    | throwError "structure '{.ofConstName structName}' does not have a field named '{fieldName}'"
+    | throwError "structure `{.ofConstName structName}` does not have a field named `{fieldName}`"
   let some path := getPathToBaseStructure? env baseStructName structName
-    | throwError "(internal error) failed to access field '{fieldName}' in parent structure"
+    | throwError "(internal error) failed to access field `{fieldName}` in parent structure"
   let field := path.foldl (init := .anonymous) (fun acc s => Name.appendCore acc <| Name.mkSimple s.getString!) ++ fieldName
   let fieldInfo := (getFieldInfo? env baseStructName fieldName).get!
   return (field, fieldInfo.projFn)
@@ -54,7 +54,7 @@ private partial def expandField (structName : Name) (field : Name) : MetaM (Name
   | .str .anonymous fieldName => expandFieldName structName (Name.mkSimple fieldName)
   | .str field' fieldName =>
     let (field', projFn) ← expandField structName field'
-    let notStructure {α} : MetaM α := throwError "field '{field'}' of structure '{.ofConstName structName}' is not a structure"
+    let notStructure {α} : MetaM α := throwError "field `{field'}` of structure `{.ofConstName structName}` is not a structure"
     let .const structName' _ := (← getConstInfo projFn).type.getForallBody | notStructure
     unless isStructure (← getEnv) structName' do notStructure
     let (field'', projFn) ← expandFieldName structName' (Name.mkSimple fieldName)

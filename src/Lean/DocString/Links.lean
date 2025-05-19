@@ -114,7 +114,7 @@ where
     | [] | [""] =>
       throw "Missing documentation type"
     | other :: _ =>
-      throw s!"Unknown documentation type '{other}'. Expected 'section'."
+      throw s!"Unknown documentation type `{other}`. Expected 'section'."
 
 
 /--

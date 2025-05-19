@@ -38,7 +38,7 @@ def skipString (s : String) : Parser Unit := pstring s *> pure ()
 
 @[inline]
 def pchar (c : Char) : Parser Char := attempt do
-  if (← any) = c then pure c else fail s!"expected: '{c}'"
+  if (← any) = c then pure c else fail s!"expected: `{c}`"
 
 @[inline]
 def skipChar (c : Char) : Parser Unit := pchar c *> pure ()

@@ -654,7 +654,7 @@ private def checkUnsupported [Monad m] [MonadEnv m] [MonadError m] (decl : Decla
         && !supportedRecursors.contains declName
       | _ => false
     match unsupportedRecursor? with
-    | some (Expr.const declName ..) => throwError "code generator does not support recursor '{declName}' yet, consider using 'match ... with' and/or structural recursion"
+    | some (Expr.const declName ..) => throwError "code generator does not support recursor `{declName}` yet, consider using 'match ... with' and/or structural recursion"
     | _ => pure ()
 
 register_builtin_option compiler.enableNew : Bool := {

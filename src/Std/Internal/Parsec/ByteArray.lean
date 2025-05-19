@@ -29,7 +29,7 @@ protected def Parser.run (p : Parser α) (arr : ByteArray) : Except String α :=
 
 @[inline]
 def pbyte (b : UInt8) : Parser UInt8 := attempt do
-  if (← any) = b then pure b else fail s!"expected: '{b}'"
+  if (← any) = b then pure b else fail s!"expected: `{b}`"
 
 @[inline]
 def skipByte (b : UInt8) : Parser Unit := pbyte b *> pure ()
@@ -51,7 +51,7 @@ Parse a `Char` that can be represented in 1 byte. If `c` uses more than 1 byte i
 -/
 @[inline]
 def pByteChar (c : Char) : Parser Char := attempt do
-  if (← any) = c.toUInt8 then pure c else fail s!"expected: '{c}'"
+  if (← any) = c.toUInt8 then pure c else fail s!"expected: `{c}`"
 
 /--
 Skip a `Char` that can be represented in 1 byte. If `c` uses more than 1 byte it is truncated.

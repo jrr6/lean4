@@ -29,7 +29,7 @@ instance : FromJson JsonNumber := ⟨Json.getNum?⟩
 instance : ToJson JsonNumber := ⟨Json.num⟩
 
 instance : FromJson Empty where
-  fromJson? j := throw (s!"type Empty has no constructor to match JSON value '{j}'. \
+  fromJson? j := throw (s!"type Empty has no constructor to match JSON value `{j}`. \
                            This occurs when deserializing a value for type Empty, \
                            e.g. at type Option Empty with code for the 'some' constructor.")
 
@@ -49,7 +49,7 @@ instance : ToJson System.FilePath := ⟨fun p => p.toString⟩
 
 protected def _root_.Array.fromJson? [FromJson α] : Json → Except String (Array α)
   | Json.arr a => a.mapM fromJson?
-  | j          => throw s!"expected JSON array, got '{j}'"
+  | j          => throw s!"expected JSON array, got `{j}`"
 
 instance [FromJson α] : FromJson (Array α) where
   fromJson? := Array.fromJson?
@@ -91,7 +91,7 @@ protected def _root_.Prod.fromJson? {α : Type u} {β : Type v} [FromJson α] [F
     let ⟨a⟩ : ULift.{v} α := ← (fromJson? ja).map ULift.up
     let ⟨b⟩ : ULift.{u} β := ← (fromJson? jb).map ULift.up
     return (a, b)
-  | j => throw s!"expected pair, got '{j}'"
+  | j => throw s!"expected pair, got `{j}`"
 
 instance {α : Type u} {β : Type v} [FromJson α] [FromJson β] : FromJson (α × β) where
   fromJson? := Prod.fromJson?
@@ -108,7 +108,7 @@ protected def Name.fromJson? (j : Json) : Except String Name := do
     return Name.anonymous
   else
     let n := s.toName
-    if n.isAnonymous then throw s!"expected a `Name`, got '{j}'"
+    if n.isAnonymous then throw s!"expected a `Name`, got `{j}`"
     return n
 
 instance : FromJson Name where
@@ -124,10 +124,10 @@ protected def NameMap.fromJson? [FromJson α] : Json → Except String (NameMap 
     else
       let n := k.toName
       if n.isAnonymous then
-        throw s!"expected a `Name`, got '{k}'"
+        throw s!"expected a `Name`, got `{k}`"
       else
         return m.insert n (← fromJson? v)
-  | j => throw s!"expected a `NameMap`, got '{j}'"
+  | j => throw s!"expected a `NameMap`, got `{j}`"
 
 instance [FromJson α] : FromJson (NameMap α) where
   fromJson? := NameMap.fromJson?
@@ -143,7 +143,7 @@ cannot represent 64-bit numbers. -/
 def bignumFromJson? (j : Json) : Except String Nat := do
   let s ← j.getStr?
   let some v := Syntax.decodeNatLitVal? s -- TODO maybe this should be in Std
-    | throw s!"expected a string-encoded number, got '{j}'"
+    | throw s!"expected a string-encoded number, got `{j}`"
   return v
 
 def bignumToJson (n : Nat) : Json :=
@@ -152,7 +152,7 @@ def bignumToJson (n : Nat) : Json :=
 protected def _root_.USize.fromJson? (j : Json) : Except String USize := do
   let n ← bignumFromJson? j
   if n ≥ USize.size then
-    throw "value '{j}' is too large for `USize`"
+    throw "value `{j}` is too large for `USize`"
   return USize.ofNat n
 
 instance : FromJson USize where
@@ -164,7 +164,7 @@ instance : ToJson USize where
 protected def _root_.UInt64.fromJson? (j : Json) : Except String UInt64 := do
   let n ← bignumFromJson? j
   if n ≥ UInt64.size then
-    throw "value '{j}' is too large for `UInt64`"
+    throw "value `{j}` is too large for `UInt64`"
   return UInt64.ofNat n
 
 instance : FromJson UInt64 where
@@ -209,7 +209,7 @@ namespace Json
 protected def Structured.fromJson? : Json → Except String Structured
   | .arr a => return Structured.arr a
   | .obj o => return Structured.obj o
-  | j     => throw s!"expected structured object, got '{j}'"
+  | j     => throw s!"expected structured object, got `{j}`"
 
 instance : FromJson Structured where
   fromJson? := Structured.fromJson?

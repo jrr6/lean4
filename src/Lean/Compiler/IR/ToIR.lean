@@ -319,7 +319,7 @@ partial def lowerLet (decl : LCNF.LetDecl) (k : LCNF.Code) : M FnBody := do
             let restArgs := irArgs.extract numParams irArgs.size
             mkPartialApp (.fap name firstArgs) restArgs
         else
-          throwError f!"axiom '{name}' not supported by code generator; consider marking definition as 'noncomputable'"
+          throwError f!"axiom `{name}` not supported by code generator; consider marking definition as 'noncomputable'"
       | some (.quotInfo ..) =>
         if name == ``Quot.mk then
           match irArgs[2]! with
@@ -333,7 +333,7 @@ partial def lowerLet (decl : LCNF.LetDecl) (k : LCNF.Code) : M FnBody := do
         else
           mkExpr (.fap name irArgs)
       | some (.recInfo ..) =>
-        throwError f!"code generator does not support recursor '{name}' yet, consider using 'match ... with' and/or structural recursion"
+        throwError f!"code generator does not support recursor `{name}` yet, consider using 'match ... with' and/or structural recursion"
       | some (.inductInfo ..) => panic! "induct unsupported by code generator"
       | some (.thmInfo ..) => panic! "thm unsupported by code generator"
       | none => panic! "reference to unbound name"

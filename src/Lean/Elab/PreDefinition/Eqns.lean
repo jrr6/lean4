@@ -387,7 +387,7 @@ private partial def mkEqnProof (declName : Name) (type : Expr) (tryRefl : Bool) 
         else if let some mvarIds ← splitTarget? mvarId then
           mvarIds.forM go
         else
-          throwError "failed to generate equational theorem for '{declName}'\n{MessageData.ofGoal mvarId}"
+          throwError "failed to generate equational theorem for `{declName}`\n{MessageData.ofGoal mvarId}"
 
 
 /--
@@ -440,7 +440,7 @@ where
   until one of the equational theorems is applicable.
 -/
 partial def mkUnfoldProof (declName : Name) (mvarId : MVarId) : MetaM Unit := do
-  let some eqs ← getEqnsFor? declName | throwError "failed to generate equations for '{declName}'"
+  let some eqs ← getEqnsFor? declName | throwError "failed to generate equations for `{declName}`"
   let tryEqns (mvarId : MVarId) : MetaM Bool :=
     eqs.anyM fun eq => commitWhen do checkpointDefEq (mayPostpone := false) do
       try
@@ -466,7 +466,7 @@ partial def mkUnfoldProof (declName : Name) (mvarId : MVarId) : MetaM Unit := do
     if (← tryContradiction mvarId) then
       return ()
 
-    throwError "failed to generate unfold theorem for '{declName}'\n{MessageData.ofGoal mvarId}"
+    throwError "failed to generate unfold theorem for `{declName}`\n{MessageData.ofGoal mvarId}"
   go mvarId
 
 builtin_initialize

@@ -272,7 +272,7 @@ Names extracted from syntax should be passed to `resolveNamespace` instead.
 def resolveNamespaceCore [Monad m] [MonadResolveName m] [MonadEnv m] [MonadError m] (id : Name) (allowEmpty := false) : m (List Name) := do
   let nss := ResolveName.resolveNamespace (← getEnv) (← getCurrNamespace) (← getOpenDecls) id
   if !allowEmpty && nss.isEmpty then
-    throwError s!"unknown namespace '{id}'"
+    throwError s!"unknown namespace `{id}`"
   return nss
 
 /-- Given a namespace identifier, return a list of possible interpretations. -/
@@ -291,7 +291,7 @@ def resolveNamespace [Monad m] [MonadResolveName m] [MonadEnv m] [MonadError m] 
 def resolveUniqueNamespace [Monad m] [MonadResolveName m] [MonadEnv m] [MonadError m] (id : Ident) : m Name := do
   match (← resolveNamespace id) with
   | [ns] => return ns
-  | nss => throwError s!"ambiguous namespace '{id.getId}', possible interpretations: '{nss}'"
+  | nss => throwError s!"ambiguous namespace `{id.getId}`, possible interpretations: `{nss}`"
 
 /-- Helper function for `resolveGlobalConstCore`. -/
 def filterFieldList [Monad m] [MonadError m] (n : Name) (cs : List (Name × List String)) : m (List Name) := do
@@ -311,7 +311,7 @@ private def resolveGlobalConstCore [Monad m] [MonadResolveName m] [MonadEnv m] [
 def ensureNoOverload [Monad m] [MonadError m] (n : Name) (cs : List Name) : m Name := do
   match cs with
   | [c] => pure c
-  | _   => throwError s!"ambiguous identifier '{mkConst n}', possible interpretations: {cs.map mkConst}"
+  | _   => throwError s!"ambiguous identifier `{mkConst n}`, possible interpretations: {cs.map mkConst}"
 
 /-- For identifiers taken from syntax, use `resolveGlobalConstNoOverload` instead, which respects preresolved names. -/
 def resolveGlobalConstNoOverloadCore [Monad m] [MonadResolveName m] [MonadEnv m] [MonadError m] (n : Name) : m Name := do
@@ -366,7 +366,7 @@ def ensureNonAmbiguous [Monad m] [MonadError m] (id : Syntax) (cs : List Name) :
   match cs with
   | []  => unreachable!
   | [c] => pure c
-  | _   => throwErrorAt id s!"ambiguous identifier '{id}', possible interpretations: {cs.map mkConst}"
+  | _   => throwErrorAt id s!"ambiguous identifier `{id}`, possible interpretations: {cs.map mkConst}"
 
 /-- Interprets the syntax `n` as an identifier for a global constant, and return a resolved
 constant name. If there are multiple possible interpretations it will throw.

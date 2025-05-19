@@ -34,14 +34,14 @@ unsafe def mkHandlerUnsafe (constName : Name) : ImportM Handler := do
   let env  := (← read).env
   let opts := (← read).opts
   match env.find? constName with
-  | none      => throw ↑s!"unknown constant '{constName}'"
+  | none      => throw ↑s!"unknown constant `{constName}`"
   | some info => match info.type with
     | Expr.const ``SimpleHandler _ => do
       let h ← IO.ofExcept $ env.evalConst SimpleHandler opts constName
       pure h.toHandler
     | Expr.const ``Handler _ =>
       IO.ofExcept $ env.evalConst Handler opts constName
-    | _ => throw ↑s!"unexpected missing docs handler at '{constName}', `MissingDocs.Handler` or `MissingDocs.SimpleHandler` expected"
+    | _ => throw ↑s!"unexpected missing docs handler at `{constName}`, `MissingDocs.Handler` or `MissingDocs.SimpleHandler` expected"
 
 @[implemented_by mkHandlerUnsafe]
 opaque mkHandler (constName : Name) : ImportM Handler
@@ -82,15 +82,15 @@ builtin_initialize
       "adds a syntax traversal for the missing docs linter"
     applicationTime := .afterCompilation
     add             := fun declName stx kind => do
-      unless kind == AttributeKind.global do throwError "invalid attribute '{name}', must be global"
+      unless kind == AttributeKind.global do throwError "invalid attribute `{name}`, must be global"
       let env ← getEnv
       unless builtin || (env.getModuleIdxFor? declName).isNone do
-        throwError "invalid attribute '{name}', declaration is in an imported module"
+        throwError "invalid attribute `{name}`, declaration is in an imported module"
       let decl ← getConstInfo declName
       let fnNameStx ← Attribute.Builtin.getIdent stx
       let key ← Elab.realizeGlobalConstNoOverloadWithInfo fnNameStx
       unless decl.levelParams.isEmpty && (decl.type == .const ``Handler [] || decl.type == .const ``SimpleHandler []) do
-        throwError "unexpected missing docs handler at '{declName}', `MissingDocs.Handler` or `MissingDocs.SimpleHandler` expected"
+        throwError "unexpected missing docs handler at `{declName}`, `MissingDocs.Handler` or `MissingDocs.SimpleHandler` expected"
       if builtin then
         let h := if decl.type == .const ``SimpleHandler [] then
           mkApp (mkConst ``SimpleHandler.toHandler) (mkConst declName)

@@ -31,7 +31,7 @@ private def skipUntilWs : Parser := skipUntil Char.isWhitespace
 /-- Skip input until the next whitespace character or delimiter (used for error recovery for certain
     tokens, especially names that occur in signatures) -/
 private def skipUntilWsOrDelim : Parser := skipUntil fun c =>
-  c.isWhitespace || c == '(' || c == ')' || c == ':' || c == '{' || c == '}' || c == '|'
+  c.isWhitespace || c == '(' || c == ')' || c == ':' || c == '{' || c == '}` || c == '|'
 
 /--
 Syntax quotation for (sequences of) commands.
@@ -88,7 +88,7 @@ such as inductive constructors, structure projections, and `let rec` / `where` d
 /-- `declId` matches `foo` or `foo.{u,v}`: an identifier possibly followed by a list of universe names -/
 -- @[builtin_doc] -- FIXME: suppress the hover
 def declId := leading_parser
-  ident >> optional (".{" >> sepBy1 (recover ident (skipUntil (fun c => c.isWhitespace || c ∈ [',', '}']))) ", " >> "}")
+  ident >> optional (".{" >> sepBy1 (recover ident (skipUntil (fun c => c.isWhitespace || c ∈ [',', '}`]))) ", " >> "}")
 /-- `declSig` matches the signature of a declaration with required type: a list of binders and then `: type` -/
 -- @[builtin_doc] -- FIXME: suppress the hover
 def declSig := leading_parser

@@ -23,7 +23,7 @@ private def addAndCompilePartial (preDefs : Array PreDefinition) (useSorry := fa
       let value ← if useSorry then
         mkLambdaFVars xs (← withRef preDef.ref <| mkLabeledSorry type (synthetic := true) (unique := true))
       else
-        let msg := m!"failed to compile 'partial' definition '{preDef.declName}'"
+        let msg := m!"failed to compile 'partial' definition `{preDef.declName}`"
         liftM <| mkInhabitantFor msg xs type
       addNonRec { preDef with
         kind  := DefKind.«opaque»
@@ -83,7 +83,7 @@ private partial def ensureNoUnassignedLevelMVarsAtPreDef (preDef : PreDefinition
         if u.hasMVar then
           let e' ← exposeLevelMVars e
           throwError "\
-            declaration '{preDef.declName}' contains universe level metavariables at the expression\
+            declaration `{preDef.declName}` contains universe level metavariables at the expression\
             {indentExpr e'}\n\
             in the declaration body{indentExpr <| ← exposeLevelMVars preDef.value}"
       let withExpr (e : Expr) (m : ReaderT Expr (MonadCacheT ExprStructEq Unit TermElabM) Unit) :=
@@ -329,7 +329,7 @@ def addPreDefinitions (preDefs : Array PreDefinition) : TermElabM Unit := withLC
         else if preDefs.any (·.modifiers.isPartial) then
           for preDef in preDefs do
             if preDef.modifiers.isPartial && !(← whnfD preDef.type).isForall then
-              withRef preDef.ref <| throwError "invalid use of 'partial', '{preDef.declName}' is not a function{indentExpr preDef.type}"
+              withRef preDef.ref <| throwError "invalid use of 'partial', `{preDef.declName}` is not a function{indentExpr preDef.type}"
           addAndCompilePartial preDefs
           preDefs.forM (·.termination.ensureNone "partial")
         else

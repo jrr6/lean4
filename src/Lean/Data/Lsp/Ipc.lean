@@ -76,12 +76,12 @@ partial def readResponseAs (expectedID : RequestID) (α) [FromJson α] :
     if id == expectedID then
       match fromJson? result with
       | Except.ok v => pure ⟨expectedID, v⟩
-      | Except.error inner => throw $ userError s!"Unexpected result '{result.compress}'\n{inner}"
+      | Except.error inner => throw $ userError s!"Unexpected result `{result.compress}`\n{inner}"
     else
       throw $ userError s!"Expected id {expectedID}, got id {id}"
   | .notification .. => readResponseAs expectedID α
   | .request .. => readResponseAs expectedID α
-  | .responseError .. => throw $ userError s!"Expected JSON-RPC response, got: '{(toJson m).compress}'"
+  | .responseError .. => throw $ userError s!"Expected JSON-RPC response, got: `{(toJson m).compress}`"
 
 def waitForExit : IpcM UInt32 := do
   (←read).wait

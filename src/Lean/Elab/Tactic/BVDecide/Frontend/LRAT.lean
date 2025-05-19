@@ -38,7 +38,7 @@ def TacticContext.new (lratPath : System.FilePath) (config : BVDecideConfig) :
   let certDef ← Lean.Elab.Term.mkAuxName `_cert_def
   let reflectionDef ← Lean.Elab.Term.mkAuxName `_reflection_def
   let solver ← determineSolver
-  trace[Meta.Tactic.sat] m!"Using SAT solver at '{solver}'"
+  trace[Meta.Tactic.sat] m!"Using SAT solver at `{solver}`"
   return {
     exprDef,
     certDef,

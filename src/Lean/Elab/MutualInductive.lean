@@ -196,7 +196,7 @@ Initializes the elaborator associated to the given syntax.
 def mkInductiveView (modifiers : Modifiers) (stx : Syntax) : TermElabM InductiveElabStep1 := do
   let handlers := inductiveElabAttr.getValues (← getEnv) stx.getKind
   if handlers.isEmpty then
-    throwErrorAt stx "no '@[inductive_elab]' for '{.ofConstName stx.getKind}'"
+    throwErrorAt stx "no '@[inductive_elab]' for `{.ofConstName stx.getKind}`"
   handlers[0]!.mkInductiveView modifiers stx
 
 def checkValidInductiveModifier [Monad m] [MonadError m] (modifiers : Modifiers) : m Unit := do
@@ -556,7 +556,7 @@ def accLevelAtCtor (ctorParam : Expr) (r : Level) (rOffset : Nat) : StateT AccLe
   match (← modifyGet fun s => accLevel u r rOffset |>.run |>.run s) with
   | .ok _ => pure ()
   | .error msg =>
-    throwError "failed to infer universe level for resulting type due to the constructor argument '{ctorParam}', {msg}"
+    throwError "failed to infer universe level for resulting type due to the constructor argument `{ctorParam}`, {msg}"
 
 /--
 Executes `k` using the `Syntax` reference associated with constructor `ctorName`.
@@ -598,7 +598,7 @@ private def collectUniverses (views : Array InductiveView) (r : Level) (rOffset 
         Universe inference suggests using{indentD <| mkSort inferred}\n\
         if the resulting universe level should be at the above universe level or higher.\n\n\
         Explanation: At this point in elaboration, universe level unification has committed to using a \
-        resulting universe level of the form '{Level.addOffset r rOffset}'. \
+        resulting universe level of the form `{Level.addOffset r rOffset}`. \
         Constructor argument universe levels must be no greater than the resulting universe level, and this condition implies the following constraint(s):\
         {MessageData.joinSep badConstraints.toList ""}\n\
         However, such constraint(s) usually indicate that the resulting universe level should have been in a different form. \
@@ -765,9 +765,9 @@ private def checkResultingUniverses (views : Array InductiveView) (elabs' : Arra
           let type ← inferType ctorArg
           let v := (← instantiateLevelMVars (← getLevel type)).normalize
           unless u.geq v do
-            let mut msg := m!"invalid universe level in constructor '{ctor.name}', parameter"
+            let mut msg := m!"invalid universe level in constructor `{ctor.name}`, parameter"
             unless (← ctorArg.fvarId!.getUserName).hasMacroScopes do
-              msg := msg ++ m!" '{ctorArg}'"
+              msg := msg ++ m!" `{ctorArg}`"
             msg := msg ++ m!" has type{indentExpr type}\n\
               at universe level{indentD v}\n\
               which is not less than or equal to the inductive type's resulting universe level{indentD u}"
@@ -974,13 +974,13 @@ private def checkNoInductiveNameConflicts (elabs : Array InductiveElabStep1) : T
     let typeDeclName := privateToUserName view.declName
     if let some (prevNameIsType, prevRef) := uniqueNames[typeDeclName]? then
       let declKinds := if prevNameIsType then "multiple inductive types" else "an inductive type and a constructor"
-      throwErrorsAt prevRef view.declId m!"cannot define {declKinds} with the same name '{typeDeclName}'"
+      throwErrorsAt prevRef view.declId m!"cannot define {declKinds} with the same name `{typeDeclName}`"
     uniqueNames := uniqueNames.insert typeDeclName (true, view.declId)
     for ctor in view.ctors do
       let ctorName := privateToUserName ctor.declName
       if let some (prevNameIsType, prevRef) := uniqueNames[ctorName]? then
         let declKinds := if prevNameIsType then "an inductive type and a constructor" else "multiple constructors"
-        throwErrorsAt prevRef ctor.declId m!"cannot define {declKinds} with the same name '{ctorName}'"
+        throwErrorsAt prevRef ctor.declId m!"cannot define {declKinds} with the same name `{ctorName}`"
       uniqueNames := uniqueNames.insert ctorName (false, ctor.declId)
 
 private def applyComputedFields (indViews : Array InductiveView) : CommandElabM Unit := do

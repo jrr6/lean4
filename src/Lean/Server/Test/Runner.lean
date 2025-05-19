@@ -141,7 +141,7 @@ partial def main (args : List String) : IO Unit := do
           -- `change: "foo" "bar"` is like `delete: "foo"` followed by `insert: "bar"` in one atomic step.
           | "change" =>
             if !synced then
-              throw <| IO.userError s!"cannot use '{method}' without syncing first"
+              throw <| IO.userError s!"cannot use `{method}` without syncing first"
             let (delete, insert) ← match method with
               | "delete" => pure (params, "\"\"")
               | "insert" => pure ("\"\"", params)

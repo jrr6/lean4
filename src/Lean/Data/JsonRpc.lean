@@ -281,7 +281,7 @@ section
     let j ← h.readJson nBytes
     match fromJson? j with
     | Except.ok m => pure m
-    | Except.error inner => throw $ userError s!"JSON '{j.compress}' did not have the format of a JSON-RPC message.\n{inner}"
+    | Except.error inner => throw $ userError s!"JSON `{j.compress}` did not have the format of a JSON-RPC message.\n{inner}"
 
   def readRequestAs (h : FS.Stream) (nBytes : Nat) (expectedMethod : String) (α) [FromJson α] : IO (Request α) := do
     let m ← h.readMessage nBytes
@@ -291,10 +291,10 @@ section
         let j := toJson params?
         match fromJson? j with
         | Except.ok v => pure ⟨id, expectedMethod, v⟩
-        | Except.error inner => throw $ userError s!"Unexpected param '{j.compress}' for method '{expectedMethod}'\n{inner}"
+        | Except.error inner => throw $ userError s!"Unexpected param `{j.compress}` for method `{expectedMethod}`\n{inner}"
       else
-        throw $ userError s!"Expected method '{expectedMethod}', got method '{method}'"
-    | _ => throw $ userError s!"Expected JSON-RPC request, got: '{(toJson m).compress}'"
+        throw $ userError s!"Expected method `{expectedMethod}`, got method `{method}`"
+    | _ => throw $ userError s!"Expected JSON-RPC request, got: `{(toJson m).compress}`"
 
   def readNotificationAs (h : FS.Stream) (nBytes : Nat) (expectedMethod : String) (α) [FromJson α] : IO (Notification α) := do
     let m ← h.readMessage nBytes
@@ -304,10 +304,10 @@ section
         let j := toJson params?
         match fromJson? j with
         | Except.ok v => pure ⟨expectedMethod, v⟩
-        | Except.error inner => throw $ userError s!"Unexpected param '{j.compress}' for method '{expectedMethod}'\n{inner}"
+        | Except.error inner => throw $ userError s!"Unexpected param `{j.compress}` for method `{expectedMethod}`\n{inner}"
       else
-        throw $ userError s!"Expected method '{expectedMethod}', got method '{method}'"
-    | _ => throw $ userError s!"Expected JSON-RPC notification, got: '{(toJson m).compress}'"
+        throw $ userError s!"Expected method `{expectedMethod}`, got method `{method}`"
+    | _ => throw $ userError s!"Expected JSON-RPC notification, got: `{(toJson m).compress}`"
 
   def readResponseAs (h : FS.Stream) (nBytes : Nat) (expectedID : RequestID) (α) [FromJson α] : IO (Response α) := do
     let m ← h.readMessage nBytes
@@ -316,10 +316,10 @@ section
       if id == expectedID then
         match fromJson? result with
         | Except.ok v => pure ⟨expectedID, v⟩
-        | Except.error inner => throw $ userError s!"Unexpected result '{result.compress}'\n{inner}"
+        | Except.error inner => throw $ userError s!"Unexpected result `{result.compress}`\n{inner}"
       else
         throw $ userError s!"Expected id {expectedID}, got id {id}"
-    | _ => throw $ userError s!"Expected JSON-RPC response, got: '{(toJson m).compress}'"
+    | _ => throw $ userError s!"Expected JSON-RPC response, got: `{(toJson m).compress}`"
 end
 
 section

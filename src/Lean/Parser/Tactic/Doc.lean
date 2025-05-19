@@ -70,24 +70,24 @@ builtin_initialize
     name := name,
     ref := by exact decl_name%,
     add := fun decl stx kind => do
-      unless kind == AttributeKind.global do throwError "invalid attribute '{name}', must be global"
+      unless kind == AttributeKind.global do throwError "invalid attribute `{name}`, must be global"
       unless ((← getEnv).getModuleIdxFor? decl).isNone do
-        throwError "invalid attribute '{name}', declaration is in an imported module"
+        throwError "invalid attribute `{name}`, declaration is in an imported module"
       let `(«tactic_alt»|tactic_alt $tgt) := stx
-        | throwError "invalid syntax for '{name}' attribute"
+        | throwError "invalid syntax for `{name}` attribute"
 
       let tgtName ← Lean.Elab.realizeGlobalConstNoOverloadWithInfo tgt
 
-      if !(isTactic (← getEnv) tgtName) then throwErrorAt tgt "'{tgtName}' is not a tactic"
+      if !(isTactic (← getEnv) tgtName) then throwErrorAt tgt "`{tgtName}` is not a tactic"
       -- If this condition is true, then we're in an `attribute` command and can validate here.
       if (← getEnv).find? decl |>.isSome then
-        if !(isTactic (← getEnv) decl) then throwError "'{decl}' is not a tactic"
+        if !(isTactic (← getEnv) decl) then throwError "`{decl}` is not a tactic"
 
       if let some tgt' := alternativeOfTactic (← getEnv) tgtName then
-        throwError "'{tgtName}' is itself an alternative for '{tgt'}'"
+        throwError "`{tgtName}` is itself an alternative for '{tgt'}`"
       modifyEnv fun env => tacticAlternativeExt.addEntry env (decl, tgtName)
       if (← findSimpleDocString? (← getEnv) decl).isSome then
-        logWarningAt stx m!"Docstring for '{decl}' will be ignored because it is an alternative"
+        logWarningAt stx m!"Docstring for `{decl}` will be ignored because it is an alternative"
 
     descr :=
       "Register a tactic parser as an alternative form of an existing tactic, so they " ++
@@ -182,15 +182,15 @@ builtin_initialize
     name := name,
     ref := by exact decl_name%,
     add := fun decl stx kind => do
-      unless kind == AttributeKind.global do throwError "invalid attribute '{name}', must be global"
+      unless kind == AttributeKind.global do throwError "invalid attribute `{name}`, must be global"
       let `(«tactic_tag»|tactic_tag $tags*) := stx
-        | throwError "invalid '{name}' attribute"
+        | throwError "invalid `{name}` attribute"
       if (← getEnv).find? decl |>.isSome then
         if !(isTactic (← getEnv) decl) then
-          throwErrorAt stx "'{decl}' is not a tactic"
+          throwErrorAt stx "`{decl}` is not a tactic"
 
       if let some tgt' := alternativeOfTactic (← getEnv) decl then
-        throwErrorAt stx "'{decl}' is an alternative form of '{tgt'}'"
+        throwErrorAt stx "`{decl}` is an alternative form of '{tgt'}`"
 
       for t in tags do
         let tagName := t.getId
@@ -200,7 +200,7 @@ builtin_initialize
           let all ← allTags
           let extra : MessageData :=
               let count := all.length
-              let name := (m!"'{·}'")
+              let name := (m!"`{·}`")
               let suggestions :=
                 if count == 0 then m!"(no tags defined)"
                 else if count == 1 then
@@ -212,7 +212,7 @@ builtin_initialize
                   MessageData.joinSep (all.take 10 |>.map name) ", " ++ ", ..."
               m!"(expected {suggestions})"
 
-          throwErrorAt t (m!"unknown tag '{tagName}' " ++ extra)
+          throwErrorAt t (m!"unknown tag `{tagName}` " ++ extra)
     descr := "Register a tactic parser as an alternative of an existing tactic, so they can be " ++
       "grouped together in documentation.",
     -- This runs prior to elaboration because it allows a check for whether the decl is present
@@ -279,12 +279,12 @@ def tacticDocsOnTactics : ParserAttributeHook where
     if catName == `tactic then
       return
     if alternativeOfTactic (← getEnv) declName |>.isSome then
-      throwError m!"'{declName}' is not a tactic"
+      throwError m!"`{declName}` is not a tactic"
     -- It's sufficient to look in the state (and not the imported entries) because this validation
     -- only needs to check tags added in the current module
     if let some tags := tacticTagExt.getState (← getEnv) |>.find? declName then
       if !tags.isEmpty then
-        throwError m!"'{declName}' is not a tactic"
+        throwError m!"`{declName}` is not a tactic"
 
 builtin_initialize
   registerParserAttributeHook tacticDocsOnTactics

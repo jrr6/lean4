@@ -136,11 +136,11 @@ where
   rpcDecode j := do
     let r ← fromJson? j
     match (← rpcGetRef r) with
-      | none => throw s!"RPC reference '{r}' is not valid"
+      | none => throw s!"RPC reference `{r}` is not valid"
       | some any =>
         if let some obj := any.get? α then
           return ⟨obj⟩
         else
-          throw s!"RPC call type mismatch in reference '{r}'\nexpected '{TypeName.typeName α}', got '{any.typeName}'"
+          throw s!"RPC call type mismatch in reference `{r}`\nexpected `{TypeName.typeName α}`, got `{any.typeName}`"
 
 end Lean.Server

@@ -49,7 +49,7 @@ def handleRpcCall (p : Lsp.RpcCallParams) : RequestM (RequestTask Json) := do
     let callPos := text.lspPosToUtf8Pos p.position
     let throwNotFound := throwThe RequestError
       { code := .methodNotFound
-        message := s!"No RPC method '{p.method}' found"}
+        message := s!"No RPC method `{p.method}` found"}
     bindWaitFindSnap doc (notFoundX := throwNotFound)
       (fun s => s.endPos >= callPos ||
         (userRpcProcedures.find? s.env p.method).isSome)
@@ -60,7 +60,7 @@ def handleRpcCall (p : Lsp.RpcCallParams) : RequestM (RequestTask Json) := do
           | .ok x => x.wrapper p.sessionId p.params
           | .error e => throwThe RequestError {
             code := .internalError
-            message := s!"Failed to evaluate RPC constant '{procName}': {e}" }
+            message := s!"Failed to evaluate RPC constant `{procName}`: {e}" }
         else
           throwNotFound
 
@@ -96,7 +96,7 @@ def wrapRpcProcedure (method : Name) paramType respType
 def registerBuiltinRpcProcedure (method : Name) paramType respType
     [RpcEncodable paramType] [RpcEncodable respType]
     (handler : paramType → RequestM (RequestTask respType)) : IO Unit := do
-  let errMsg := s!"Failed to register builtin RPC call handler for '{method}'"
+  let errMsg := s!"Failed to register builtin RPC call handler for `{method}`"
   unless (← initializing) do
     throw <| IO.userError s!"{errMsg}: only possible during initialization"
   if (←builtinRpcProcedures.get).contains method then
@@ -108,7 +108,7 @@ def registerBuiltinRpcProcedure (method : Name) paramType respType
 open Lean Elab Command Term Meta in
 def registerRpcProcedure (method : Name) : CoreM Unit := do
   let env ← getEnv
-  let errMsg := m!"Failed to register RPC call handler for '{method}'"
+  let errMsg := m!"Failed to register RPC call handler for `{method}`"
   if (←builtinRpcProcedures.get).contains method then
     throwError m!"{errMsg}: already registered (builtin)"
   if userRpcProcedures.contains env method then

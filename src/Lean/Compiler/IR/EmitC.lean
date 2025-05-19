@@ -34,7 +34,7 @@ def getDecl (n : Name) : M Decl := do
   let env ← getEnv
   match findEnvDecl env n with
   | some d => pure d
-  | none   => throw s!"unknown declaration '{n}'"
+  | none   => throw s!"unknown declaration `{n}`"
 
 @[inline] def emit {α : Type} [ToString α] (a : α) : M Unit :=
   modify fun out => out ++ toString a
@@ -68,7 +68,7 @@ def toCType : IRType → String
   | IRType.union _ _  => panic! "not implemented yet"
 
 def throwInvalidExportName {α : Type} (n : Name) : M α :=
-  throw s!"invalid export name '{n}'"
+  throw s!"invalid export name `{n}`"
 
 def toCName (n : Name) : M String := do
   let env ← getEnv;
@@ -242,7 +242,7 @@ def emitFileFooter : M Unit :=
   ]
 
 def throwUnknownVar {α : Type} (x : VarId) : M α :=
-  throw s!"unknown variable '{x}'"
+  throw s!"unknown variable `{x}`"
 
 def getJPParams (j : JoinPointId) : M (Array Param) := do
   let ctx ← read;
@@ -421,7 +421,7 @@ def emitExternCall (f : FunId) (ps : Array Param) (extData : ExternAttrData) (ys
   | some (ExternEntry.standard _ extFn) => emitSimpleExternalCall extFn ps ys
   | some (ExternEntry.inline _ pat)     => do emit (expandExternPattern pat (toStringArgs ys)); emitLn ";"
   | some (ExternEntry.foreign _ extFn)  => emitSimpleExternalCall extFn ps ys
-  | _ => throw s!"failed to emit extern application '{f}'"
+  | _ => throw s!"failed to emit extern application `{f}`"
 
 def emitFullApp (z : VarId) (f : FunId) (ys : Array Arg) : M Unit := do
   emitLhs z

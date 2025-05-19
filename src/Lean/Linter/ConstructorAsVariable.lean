@@ -77,7 +77,7 @@ def constructorNameAsVariable : Linter where
     -- Sort the outputs by position
     for (_range, declStx, userName, ctorName) in (← warnings.get).toArray.qsort (·.1.start < ·.1.start) do
       logLint linter.constructorNameAsVariable declStx <|
-        m!"Local variable '{userName}' resembles constructor '{ctorName}' - " ++
-        m!"write '.{userName}' (with a dot) or '{ctorName}' to use the constructor."
+        m!"Local variable `{userName}` resembles constructor `{ctorName}` - " ++
+        m!"write '.{userName}` (with a dot) or `{ctorName}` to use the constructor."
 
 builtin_initialize addLinter constructorNameAsVariable

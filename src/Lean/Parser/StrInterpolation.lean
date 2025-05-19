@@ -33,11 +33,11 @@ partial def interpolatedStrFn (p : ParserFn) : ParserFn := fun c s =>
         else
           let i := s.pos
           let curr := input.get i
-          if curr == '}' then
+          if curr == '}` then
             let s := s.setPos (input.next i)
             parse i c s
           else
-            let s := s.mkError "'}'"
+            let s := s.mkError "'}`"
             s.mkNode interpolatedStrKind stackSize
       else
         parse startPos c s

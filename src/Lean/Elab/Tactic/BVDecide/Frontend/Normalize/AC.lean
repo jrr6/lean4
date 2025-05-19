@@ -172,7 +172,7 @@ where
           let coeff ← go coeff y
           return coeff
         else
-          trace[Meta.Tactic.bv] "Found binary operation '{op'} {x} {y}', expected '{op}'.\
+          trace[Meta.Tactic.bv] "Found binary operation '{op'} {x} {y}`, expected `{op}`.\
             Treating as atom."
           incrVar coeff e
     | e => incrVar coeff e
@@ -275,7 +275,7 @@ def canonicalizeWithSharing (P : Expr) (lhs rhs : Expr) : SimpM Simp.Step := do
         {indentExpr rhs}"
     return .continue
 
-  trace[Meta.Tactic.bv] "Canonicalizing with respect to operation: '{op}'."
+  trace[Meta.Tactic.bv] "Canonicalizing with respect to operation: `{op}`."
 
   VarStateM.run' (s := { op }) do
     let lCoeff ← computeCoefficients op lhs

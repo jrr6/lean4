@@ -97,7 +97,7 @@ def partialFixpoint (preDefs : Array PreDefinition) : TermElabM Unit := do
             synthInstance (← mkAppM ``CCPO #[type])
           catch _ =>
             trace[Elab.definition.partialFixpoint] "No CCPO instance found for {preDef.declName}, trying inhabitation"
-            let msg := m!"failed to compile definition '{preDef.declName}' using `partial_fixpoint`"
+            let msg := m!"failed to compile definition `{preDef.declName}` using `partial_fixpoint`"
             let w ← mkInhabitantFor msg #[] preDef.type
             let instNonempty ← mkAppM ``Nonempty.intro #[mkAppN w xs]
             let classicalWitness ← mkAppOptM ``Classical.ofNonempty #[none, instNonempty]
@@ -134,7 +134,7 @@ def partialFixpoint (preDefs : Array PreDefinition) : TermElabM Unit := do
     let failK {α} f (monoThms : Array Name) : MetaM α := do
       unReplaceRecApps preDefs fixedParamPerms fixedArgs f fun t => do
         let extraMsg := if monoThms.isEmpty then m!"" else
-          m!"Tried to apply {.andList (monoThms.toList.map (m!"'{.ofConstName ·}'"))}, but failed.\n\
+          m!"Tried to apply {.andList (monoThms.toList.map (m!"`{.ofConstName ·}`"))}, but failed.\n\
              Possible cause: A missing `{.ofConstName ``MonoBind}` instance.\n\
              Use `set_option trace.Elab.Tactic.monotonicity true` to debug."
         if let some recApp := t.find? hasRecAppSyntax then
@@ -174,7 +174,7 @@ def partialFixpoint (preDefs : Array PreDefinition) : TermElabM Unit := do
           mkSorry goal (synthetic := true)
       else
         let hmono ← mkFreshExprSyntheticOpaqueMVar goal
-        prependError m!"Could not prove '{preDef.declName}' to be monotone in its recursive calls:" do
+        prependError m!"Could not prove `{preDef.declName}` to be monotone in its recursive calls:" do
           solveMono failK hmono.mvarId!
         trace[Elab.definition.partialFixpoint] "monotonicity proof for {preDef.declName}: {hmono}"
         instantiateMVars hmono

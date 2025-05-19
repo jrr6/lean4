@@ -1571,7 +1571,7 @@ def deriveCases (unfolding : Bool) (name : Name) : MetaM Unit := do
   prependError m!"Cannot derive functional cases principle (please report this issue)" do
     let info ← getConstInfo name
     let some unfoldEqnName ← getUnfoldEqnFor? (nonRec := true) name
-      | throwError "'{name}' does not have an unfold theorem nor a value"
+      | throwError "`{name}` does not have an unfold theorem nor a value"
     let value ← do
       let eqInfo ← getConstInfo unfoldEqnName
       forallTelescope eqInfo.type fun xs body => do
@@ -1673,7 +1673,7 @@ def deriveInduction (unfolding : Bool) (name : Name) : MetaM Unit := do
       else
         let _ ← deriveInductionStructural unfolding eqnInfo.declNames eqnInfo.fixedParamPerms
     else
-      throwError "constant '{name}' is not structurally or well-founded recursive"
+      throwError "constant `{name}` is not structurally or well-founded recursive"
 
 def isFunInductName (env : Environment) (name : Name) : Bool := Id.run do
   let .str p s := name | return false

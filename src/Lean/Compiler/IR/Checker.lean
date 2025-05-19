@@ -50,18 +50,18 @@ def markJP (j : JoinPointId) : M Unit :=
 def getDecl (c : Name) : M Decl := do
   let ctx ← read
   match findEnvDecl' ctx.env c ctx.decls with
-  | none   => throw s!"depends on declaration '{c}', which has no executable code; consider marking definition as 'noncomputable'"
+  | none   => throw s!"depends on declaration `{c}`, which has no executable code; consider marking definition as 'noncomputable'"
   | some d => pure d
 
 def checkVar (x : VarId) : M Unit := do
   let ctx ← read
   unless ctx.localCtx.isLocalVar x.idx || ctx.localCtx.isParam x.idx do
-   throw s!"unknown variable '{x}'"
+   throw s!"unknown variable `{x}`"
 
 def checkJP (j : JoinPointId) : M Unit := do
   let ctx ← read
   unless ctx.localCtx.isJP j.idx do
-   throw s!"unknown join point '{j}'"
+   throw s!"unknown join point `{j}`"
 
 def checkArg (a : Arg) : M Unit :=
   match a with
@@ -73,11 +73,11 @@ def checkArgs (as : Array Arg) : M Unit :=
 
 @[inline] def checkEqTypes (ty₁ ty₂ : IRType) : M Unit := do
   unless ty₁ == ty₂ do
-    throw "unexpected type '{ty₁}' != '{ty₂}'"
+    throw "unexpected type `{ty₁}` != `{ty₂}`"
 
 @[inline] def checkType (ty : IRType) (p : IRType → Bool) (suffix? : Option String := none): M Unit := do
   unless p ty do
-   let mut msg := s!"unexpected type '{ty}'"
+   let mut msg := s!"unexpected type `{ty}`"
    if let some suffix := suffix? then
      msg := s!"{msg}, {suffix}"
    throw msg
@@ -90,7 +90,7 @@ def getType (x : VarId) : M IRType := do
   let ctx ← read
   match ctx.localCtx.getType x with
   | some ty => pure ty
-  | none    => throw s!"unknown variable '{x}'"
+  | none    => throw s!"unknown variable `{x}`"
 
 @[inline] def checkVarType (x : VarId) (p : IRType → Bool) (suffix? : Option String := none) : M Unit := do
   let ty ← getType x; checkType ty p suffix?
@@ -104,13 +104,13 @@ def checkScalarVar (x : VarId) : M Unit :=
 def checkFullApp (c : FunId) (ys : Array Arg) : M Unit := do
   let decl ← getDecl c
   unless ys.size == decl.params.size do
-    throw s!"incorrect number of arguments to '{c}', {ys.size} provided, {decl.params.size} expected"
+    throw s!"incorrect number of arguments to `{c}`, {ys.size} provided, {decl.params.size} expected"
   checkArgs ys
 
 def checkPartialApp (c : FunId) (ys : Array Arg) : M Unit := do
   let decl ← getDecl c
   unless ys.size < decl.params.size do
-    throw s!"too many arguments too partial application '{c}', num. args: {ys.size}, arity: {decl.params.size}"
+    throw s!"too many arguments too partial application `{c}`, num. args: {ys.size}, arity: {decl.params.size}"
   checkArgs ys
 
 def checkExpr (ty : IRType) : Expr → M Unit
@@ -119,11 +119,11 @@ def checkExpr (ty : IRType) : Expr → M Unit
   | Expr.fap f ys           => checkFullApp f ys
   | Expr.ctor c ys          => do
     if c.cidx > maxCtorTag && (c.size > 0 || c.usize > 0 || c.ssize > 0) then
-      throw s!"tag for constructor '{c.name}' is too big, this is a limitation of the current runtime"
+      throw s!"tag for constructor `{c.name}` is too big, this is a limitation of the current runtime"
     if c.size > maxCtorFields then
-      throw s!"constructor '{c.name}' has too many fields"
+      throw s!"constructor `{c.name}` has too many fields"
     if c.ssize + c.usize * usizeSize > maxCtorScalarsSize then
-      throw s!"constructor '{c.name}' has too many scalar fields"
+      throw s!"constructor `{c.name}` has too many scalar fields"
     if !ty.isStruct && !ty.isUnion && c.isRef then
       (checkObjType ty) *> checkArgs ys
   | Expr.reset _ x          => checkObjVar x *> checkObjType ty
@@ -137,7 +137,7 @@ def checkExpr (ty : IRType) : Expr → M Unit
     | IRType.tobject      => checkObjType ty
     | IRType.struct _ tys => if h : i < tys.size then checkEqTypes (tys[i]) ty else throw "invalid proj index"
     | IRType.union _ tys  => if h : i < tys.size then checkEqTypes (tys[i]) ty else throw "invalid proj index"
-    | _                   => throw s!"unexpected IR type '{xType}'"
+    | _                   => throw s!"unexpected IR type `{xType}`"
   | Expr.uproj _ x          => checkObjVar x *> checkType ty (fun t => t == IRType.usize)
   | Expr.sproj _ _ x        => checkObjVar x *> checkScalarType ty
   | Expr.isShared x         => checkObjVar x *> checkType ty (fun t => t == IRType.uint8)
@@ -182,7 +182,7 @@ end Checker
 def checkDecl (decls : Array Decl) (decl : Decl) : CompilerM Unit := do
   let env ← getEnv
   match (Checker.checkDecl decl { env := env, decls := decls }).run' {} with
-  | .error msg => throw s!"failed to compile definition, compiler IR check failed at '{decl.name}'. Error: {msg}"
+  | .error msg => throw s!"failed to compile definition, compiler IR check failed at `{decl.name}`. Error: {msg}"
   | _ => pure ()
 
 def checkDecls (decls : Array Decl) : CompilerM Unit :=

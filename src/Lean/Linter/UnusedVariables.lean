@@ -132,10 +132,10 @@ abbrev IgnoreFunction := Syntax → Syntax.Stack → LinterOptions → Bool
 unsafe def mkIgnoreFnImpl (constName : Name) : ImportM IgnoreFunction := do
   let { env, opts, .. } ← read
   match env.find? constName with
-  | none      => throw ↑s!"unknown constant '{constName}'"
+  | none      => throw ↑s!"unknown constant `{constName}`"
   | some info =>
     unless info.type.isConstOf ``IgnoreFunction do
-      throw ↑s!"unexpected unused_variables_ignore_fn at '{constName}', must be of type `Lean.Linter.IgnoreFunction`"
+      throw ↑s!"unexpected unused_variables_ignore_fn at `{constName}`, must be of type `Lean.Linter.IgnoreFunction`"
     IO.ofExcept <| env.evalConst IgnoreFunction opts constName
 
 @[inherit_doc mkIgnoreFnImpl, implemented_by mkIgnoreFnImpl]
@@ -172,9 +172,9 @@ builtin_initialize
     applicationTime := .afterCompilation
     add             := fun decl stx kind => do
       Attribute.Builtin.ensureNoArgs stx
-      unless kind == AttributeKind.global do throwError "invalid attribute '{name}', must be global"
+      unless kind == AttributeKind.global do throwError "invalid attribute `{name}`, must be global"
       unless (← getConstInfo decl).type.isConstOf ``IgnoreFunction do
-        throwError "invalid attribute '{name}', must be of type `Lean.Linter.IgnoreFunction`"
+        throwError "invalid attribute `{name}`, must be of type `Lean.Linter.IgnoreFunction`"
       let env ← getEnv
       if builtin then
         let h := mkConst decl

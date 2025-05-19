@@ -11,7 +11,7 @@ import Lean.Elab.Command
 namespace Lean.Elab.Command
 
 private def throwUnknownId (id : Name) : CommandElabM Unit :=
-  throwError "unknown identifier '{.ofConstName id}'"
+  throwError "unknown identifier `{.ofConstName id}`"
 
 private def levelParamsToMessageData (levelParams : List Name) : MessageData :=
   match levelParams with
@@ -192,9 +192,9 @@ private def printId (id : Syntax) : CommandElabM Unit := do
 private def printAxiomsOf (constName : Name) : CommandElabM Unit := do
   let axioms ← collectAxioms constName
   if axioms.isEmpty then
-    logInfo m!"'{constName}' does not depend on any axioms"
+    logInfo m!"`{constName}` does not depend on any axioms"
   else
-    logInfo m!"'{constName}' depends on axioms: {axioms.qsort Name.lt |>.toList}"
+    logInfo m!"`{constName}` depends on axioms: {axioms.qsort Name.lt |>.toList}"
 
 @[builtin_command_elab «printAxioms»] def elabPrintAxioms : CommandElab
   | `(#print%$tk axioms $id) => withRef tk do
@@ -208,7 +208,7 @@ private def printAxiomsOf (constName : Name) : CommandElabM Unit := do
 
 private def printEqnsOf (constName : Name) : CommandElabM Unit := do
   let some eqns ← liftTermElabM <| Meta.getEqnsFor? constName |
-    logInfo m!"'{constName}' does not have equations"
+    logInfo m!"`{constName}` does not have equations"
   let mut m := m!"equations:"
   for eq in eqns do
     let cinfo ← getConstInfo eq

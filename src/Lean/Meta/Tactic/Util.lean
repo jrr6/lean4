@@ -36,11 +36,11 @@ def mkFreshExprSyntheticOpaqueMVar (type : Expr) (tag : Name := Name.anonymous) 
 
 def throwTacticEx (tacticName : Name) (mvarId : MVarId) (msg? : Option MessageData := none) : MetaM α :=
   match msg? with
-  | none => throwError "tactic '{tacticName}' failed\n{mvarId}"
-  | some msg => throwError "tactic '{tacticName}' failed, {msg}\n{mvarId}"
+  | none => throwError "tactic `{tacticName}` failed\n{mvarId}"
+  | some msg => throwError "tactic `{tacticName}` failed, {msg}\n{mvarId}"
 
 def throwNestedTacticEx {α} (tacticName : Name) (ex : Exception) : MetaM α := do
-  throwError "tactic '{tacticName}' failed, nested error:\n{ex.toMessageData}"
+  throwError "tactic `{tacticName}` failed, nested error:\n{ex.toMessageData}"
 
 /-- Throw a tactic exception with given tactic name if the given metavariable is assigned. -/
 def _root_.Lean.MVarId.checkNotAssigned (mvarId : MVarId) (tacticName : Name) : MetaM Unit := do

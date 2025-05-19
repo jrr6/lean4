@@ -1290,7 +1290,7 @@ def identEqFn (id : Name) : ParserFn := fun c s =>
   if s.hasError then
     s
   else match s.stxStack.back with
-    | .ident _ _ val _ => if val != id then s.mkUnexpectedTokenError s!"identifier '{id}'" else s
+    | .ident _ _ val _ => if val != id then s.mkUnexpectedTokenError s!"identifier `{id}`" else s
     | _ => s.mkUnexpectedTokenError "identifier"
 
 def identEq (id : Name) : Parser := {

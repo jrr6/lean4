@@ -51,7 +51,7 @@ private partial def mkErrorMessage (c : InputContext) (pos : String.Pos) (stk : 
       endPos? := some r.stop
     let unexpected := match e.unexpectedTk with
       | .ident .. => "unexpected identifier"
-      | .atom _ v => s!"unexpected token '{v}'"
+      | .atom _ v => s!"unexpected token `{v}`"
       | _         => "unexpected token"  -- TODO: categorize (custom?) literals as well?
     e := { e with unexpected }
     -- if there is an unexpected token, include preceding whitespace as well as the expected token could

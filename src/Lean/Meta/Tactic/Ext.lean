@@ -79,7 +79,7 @@ found somewhere in the state's tree, and is not erased.
 def ExtTheorems.erase [Monad m] [MonadError m] (d : ExtTheorems) (declName : Name) :
     m ExtTheorems := do
   unless d.contains declName do
-    throwError "'{declName}' does not have [ext] attribute"
+    throwError "`{declName}` does not have [ext] attribute"
   return d.eraseCore declName
 
 end Lean.Meta.Ext

@@ -1190,7 +1190,7 @@ section MessageHandling
           /- Some clients (VSCode) also send requests *before* opening a file. We reply
           with `contentModified` as that does not display a "request failed" popup. -/
           code    := ErrorCode.contentModified
-          message := s!"Cannot process request to closed file '{uri}'" }
+          message := s!"Cannot process request to closed file `{uri}`" }
       return
     let r := Request.mk id method params
     tryWriteMessage uri r
@@ -1256,7 +1256,7 @@ section MessageHandling
         ctx.hOut.writeLspResponseError {
           id
           code    := ErrorCode.contentModified
-          message := s!"Cannot process '$/lean/waitForILeans' request to closed file '{uri}'" }
+          message := s!"Cannot process '$/lean/waitForILeans' request to closed file `{uri}`" }
         return
       ctx.referenceData.atomically do
         let deferResponse := modify fun rd =>

@@ -311,9 +311,9 @@ def reparseOptions (opts : Options) : IO Options := do
     let name := name.replacePrefix `weak Name.anonymous
     let some decl := decls.find? name
       | unless weak do
-          throw <| .userError s!"invalid -D parameter, unknown configuration option '{name}'
+          throw <| .userError s!"invalid -D parameter, unknown configuration option `{name}`
 
-If the option is defined in this library, use '-D{`weak ++ name}' to set it conditionally"
+If the option is defined in this library, use '-D{`weak ++ name}` to set it conditionally"
 
     let .ofString val := val
       | opts' := opts'.insert name val  -- Already parsed
@@ -324,15 +324,15 @@ If the option is defined in this library, use '-D{`weak ++ name}' to set it cond
       | "true"  => opts' := opts'.insert name true
       | "false" => opts' := opts'.insert name false
       | _ =>
-        throw <| .userError s!"invalid -D parameter, invalid configuration option '{val}' value, \
+        throw <| .userError s!"invalid -D parameter, invalid configuration option `{val}` value, \
           it must be true/false"
     | .ofNat _ =>
       let some val := val.toNat?
-        | throw <| .userError s!"invalid -D parameter, invalid configuration option '{val}' value, \
+        | throw <| .userError s!"invalid -D parameter, invalid configuration option `{val}` value, \
             it must be a natural number"
       opts' := opts'.insert name val
     | .ofString _ => opts' := opts'.insert name val
-    | _ => throw <| .userError s!"invalid -D parameter, configuration option '{name}' \
+    | _ => throw <| .userError s!"invalid -D parameter, configuration option `{name}` \
               cannot be set in the command line, use set_option command"
 
   return opts'

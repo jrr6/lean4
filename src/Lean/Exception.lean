@@ -93,7 +93,7 @@ def throwUnknownIdentifier [Monad m] [MonadError m] (msg : MessageData) : m α :
 
 /-- Throw an unknown constant error message. -/
 def throwUnknownConstant [Monad m] [MonadError m] (constName : Name) : m α :=
-  throwUnknownIdentifier m!"unknown constant '{.ofConstName constName}'"
+  throwUnknownIdentifier m!"unknown constant `{.ofConstName constName}`"
 
 /-- Throw an error exception using the given message data and reference syntax. -/
 protected def throwErrorAt [Monad m] [MonadError m] (ref : Syntax) (msg : MessageData) : m α := do

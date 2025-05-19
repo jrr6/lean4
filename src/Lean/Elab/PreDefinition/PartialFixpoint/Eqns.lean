@@ -95,7 +95,7 @@ where
           trace[Elab.definition.partialFixpoint] "mkUnfoldEq rfl succeeded"
           instantiateMVars goal
         catch e =>
-          throwError "failed to generate unfold theorem for '{declName}':\n{e.toMessageData}"
+          throwError "failed to generate unfold theorem for `{declName}`:\n{e.toMessageData}"
       let type ← mkForallFVars xs type
       let value ← mkLambdaFVars xs goal
       addDecl <| Declaration.thmDecl {

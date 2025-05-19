@@ -185,7 +185,7 @@ def addLocalVarInfo (stx : Syntax) (fvar : Expr) : TermElabM Unit :=
 private def ensureAtomicBinderName (binderView : BinderView) : TermElabM Unit :=
   let n := binderView.id.getId.eraseMacroScopes
   unless n.isAtomic do
-    throwErrorAt binderView.id "invalid binder name '{n}', it must be atomic"
+    throwErrorAt binderView.id "invalid binder name `{n}`, it must be atomic"
 
 register_builtin_option checkBinderAnnotations : Bool := {
   defValue := true
@@ -677,8 +677,8 @@ def elabLetDeclAux (id : Syntax) (binders : Array Syntax) (typeStx : Syntax) (va
     -/
     let type ← withSynthesize (postpone := .partial) <| elabType typeStx
     let letMsg := if useLetExpr then "let" else "have"
-    registerCustomErrorIfMVar type typeStx m!"failed to infer '{letMsg}' declaration type"
-    registerLevelMVarErrorExprInfo type typeStx m!"failed to infer universe levels in '{letMsg}' declaration type"
+    registerCustomErrorIfMVar type typeStx m!"failed to infer `{letMsg}` declaration type"
+    registerLevelMVarErrorExprInfo type typeStx m!"failed to infer universe levels in `{letMsg}` declaration type"
     if elabBodyFirst then
       let type ← mkForallFVars fvars type
       let val  ← mkFreshExprMVar type

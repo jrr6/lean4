@@ -1285,7 +1285,7 @@ def modifyState {σ : Type} (ext : EnvExtension σ) (env : Environment) (f : σ 
   | .mainOnly =>
     if let some asyncCtx := env.asyncCtx? then
       return panic! s!"environment extension is marked as `mainOnly` but used in \
-        {if env.isRealizing then "realization" else "async"} context '{asyncCtx.declPrefix}'"
+        {if env.isRealizing then "realization" else "async"} context `{asyncCtx.declPrefix}`"
     return { env with base.private.extensions := unsafe ext.modifyStateImpl env.base.private.extensions f }
   | .local =>
     return { env with base.private.extensions := unsafe ext.modifyStateImpl env.base.private.extensions f }
@@ -1293,7 +1293,7 @@ def modifyState {σ : Type} (ext : EnvExtension σ) (env : Environment) (f : σ 
     if ext.replay?.isNone then
       if let some (n :: _) := env.asyncCtx?.map (·.realizingStack) then
         return panic! s!"environment extension must set `replay?` field to be \
-          used in realization context '{n}'"
+          used in realization context `{n}`"
     env.modifyCheckedAsync fun env =>
       { env with extensions := unsafe ext.modifyStateImpl env.extensions f }
 
@@ -1549,7 +1549,7 @@ attribute [inherit_doc PersistentEnvExtension.saveEntriesFn] PersistentEnvExtens
 
 unsafe def registerPersistentEnvExtensionUnsafe {α β σ : Type} [Inhabited σ] (descr : PersistentEnvExtensionDescr α β σ) : IO (PersistentEnvExtension α β σ) := do
   let pExts ← persistentEnvExtensionsRef.get
-  if pExts.any (fun ext => ext.name == descr.name) then throw (IO.userError s!"invalid environment extension, '{descr.name}' has already been used")
+  if pExts.any (fun ext => ext.name == descr.name) then throw (IO.userError s!"invalid environment extension, `{descr.name}` has already been used")
   let replay? := descr.replay?.map fun replay =>
     fun oldState newState newConsts s => { s with state := replay oldState.state newState.state newConsts s.state }
   let ext ← registerEnvExtension (asyncMode := descr.asyncMode) (replay? := replay?) do
@@ -1780,7 +1780,7 @@ structure ImportState where
 def throwAlreadyImported (s : ImportState) (const2ModIdx : Std.HashMap Name ModuleIdx) (modIdx : Nat) (cname : Name) : IO α := do
   let modName := s.moduleNames[modIdx]!
   let constModName := s.moduleNames[const2ModIdx[cname]!.toNat]!
-  throw <| IO.userError s!"import {modName} failed, environment already contains '{cname}' from {constModName}"
+  throw <| IO.userError s!"import {modName} failed, environment already contains `{cname}` from {constModName}"
 
 abbrev ImportStateM := StateRefT ImportState IO
 
@@ -1802,7 +1802,7 @@ def ModuleArtifacts.oleanParts (arts : ModuleArtifacts) : Array System.FilePath 
 private def findOLeanParts (mod : Name) : IO (Array System.FilePath) := do
   let mFile ← findOLean mod
   unless (← mFile.pathExists) do
-    throw <| IO.userError s!"object file '{mFile}' of module {mod} does not exist"
+    throw <| IO.userError s!"object file `{mFile}` of module {mod} does not exist"
   let mut fnames := #[mFile]
   -- Opportunistically load all available parts.
   -- Necessary because the import level may be upgraded a later import.
@@ -2233,7 +2233,7 @@ def realizeConst (env : Environment) (forConst : Name) (constName : Name)
   -- end
   let heartbeats ← IO.getNumHeartbeats
   if env.asyncCtx?.any (·.realizingStack.contains constName) then
-    throw <| IO.userError s!"Environment.realizeConst: cyclic realization of '{constName}'"
+    throw <| IO.userError s!"Environment.realizeConst: cyclic realization of `{constName}`"
   let mut env := env
   -- find `RealizationContext` for `forConst` in `realizedImportedConsts?` or `realizedLocalConsts`
   let ctx ← if env.base.get env |>.const2ModIdx.contains forConst then
@@ -2243,7 +2243,7 @@ def realizeConst (env : Environment) (forConst : Name) (constName : Name)
     match env.realizedLocalConsts.find? forConst with
     | some ctx => pure ctx
     | none =>
-      throw <| .userError s!"trying to realize {constName} but `enableRealizationsForConst` must be called for '{forConst}' first"
+      throw <| .userError s!"trying to realize {constName} but `enableRealizationsForConst` must be called for `{forConst}` first"
   let prom ← IO.Promise.new
   -- ensure `prom` is not left unresolved from stray exceptions
   BaseIO.toIO do

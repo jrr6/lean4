@@ -646,26 +646,26 @@ private def mkCtx (env : Environment) (lctx : LocalContext) (opts : Options) (ms
 
 def toMessageData (e : Kernel.Exception) (opts : Options) : MessageData :=
   match e with
-  | unknownConstant env constName       => mkCtx env {} opts m!"(kernel) unknown constant '{constName}'"
-  | alreadyDeclared env constName       => mkCtx env {} opts m!"(kernel) constant has already been declared '{.ofConstName constName true}'"
+  | unknownConstant env constName       => mkCtx env {} opts m!"(kernel) unknown constant `{constName}`"
+  | alreadyDeclared env constName       => mkCtx env {} opts m!"(kernel) constant has already been declared `{.ofConstName constName true}`"
   | declTypeMismatch env decl givenType =>
     mkCtx env {} opts <|
     let process (n : Name) (expectedType : Expr) : MessageData :=
-      m!"(kernel) declaration type mismatch, '{n}' has type{indentExpr givenType}\nbut it is expected to have type{indentExpr expectedType}";
+      m!"(kernel) declaration type mismatch, `{n}` has type{indentExpr givenType}\nbut it is expected to have type{indentExpr expectedType}";
     match decl with
     | Declaration.defnDecl { name := n, type := type, .. } => process n type
     | Declaration.thmDecl { name := n, type := type, .. }  => process n type
     | _ => "(kernel) declaration type mismatch" -- TODO fix type checker, type mismatch for mutual decls does not have enough information
-  | declHasMVars env constName _        => mkCtx env {} opts m!"(kernel) declaration has metavariables '{.ofConstName constName true}'"
-  | declHasFVars env constName _        => mkCtx env {} opts m!"(kernel) declaration has free variables '{.ofConstName constName true}'"
+  | declHasMVars env constName _        => mkCtx env {} opts m!"(kernel) declaration has metavariables `{.ofConstName constName true}`"
+  | declHasFVars env constName _        => mkCtx env {} opts m!"(kernel) declaration has free variables `{.ofConstName constName true}`"
   | funExpected env lctx e              => mkCtx env lctx opts m!"(kernel) function expected{indentExpr e}"
   | typeExpected env lctx e             => mkCtx env lctx opts m!"(kernel) type expected{indentExpr e}"
-  | letTypeMismatch  env lctx n _ _     => mkCtx env lctx opts m!"(kernel) let-declaration type mismatch '{n}'"
+  | letTypeMismatch  env lctx n _ _     => mkCtx env lctx opts m!"(kernel) let-declaration type mismatch `{n}`"
   | exprTypeMismatch env lctx e _       => mkCtx env lctx opts m!"(kernel) type mismatch at{indentExpr e}"
   | appTypeMismatch  env lctx e fnType argType =>
     mkCtx env lctx opts m!"(kernel) application type mismatch{indentExpr e}\nargument has type{indentExpr argType}\nbut function has type{indentExpr fnType}"
   | invalidProj env lctx e              => mkCtx env lctx opts m!"(kernel) invalid projection{indentExpr e}"
-  | thmTypeIsNotProp env constName type => mkCtx env {} opts m!"(kernel) type of theorem '{.ofConstName constName true}' is not a proposition{indentExpr type}"
+  | thmTypeIsNotProp env constName type => mkCtx env {} opts m!"(kernel) type of theorem `{.ofConstName constName true}` is not a proposition{indentExpr type}"
   | other msg                           => m!"(kernel) {msg}"
   | deterministicTimeout                => "(kernel) deterministic timeout"
   | excessiveMemory                     => "(kernel) excessive memory consumption detected"

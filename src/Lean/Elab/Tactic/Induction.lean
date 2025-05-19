@@ -156,7 +156,7 @@ partial def mkElimApp (elimInfo : ElimInfo) (targets : Array Expr) (tag : Name) 
         let s ← get
         let ctx ← read
         unless s.targetPos < ctx.targets.size do
-          throwError "insufficient number of targets for '{elimInfo.elimExpr}'"
+          throwError "insufficient number of targets for `{elimInfo.elimExpr}`"
         let target := ctx.targets[s.targetPos]!
         let expectedType ← getArgExpectedType
         let target ← withAssignableSyntheticOpaque <| Term.ensureHasType expectedType target
@@ -185,7 +185,7 @@ partial def mkElimApp (elimInfo : ElimInfo) (targets : Array Expr) (tag : Name) 
       let s ← get
       let ctx ← read
       unless s.targetPos = ctx.targets.size do
-        throwError "unexpected number of targets for '{elimInfo.elimExpr}'"
+        throwError "unexpected number of targets for `{elimInfo.elimExpr}`"
       pure ()
   let (_, s) ← (loop).run { elimInfo := elimInfo, targets := targets }
     |>.run { f := elimInfo.elimExpr, fType := elimInfo.elimType, motive := none }
@@ -257,7 +257,7 @@ private def getAltNumFields (elimInfo : ElimInfo) (altName : Name) : TermElabM N
   for altInfo in elimInfo.altsInfo do
     if altInfo.name == altName then
       return altInfo.numFields
-  throwError "unknown alternative name '{altName}'"
+  throwError "unknown alternative name `{altName}`"
 
 private def isWildcard (altStx : Syntax) : Bool :=
   getAltName altStx == `_
@@ -271,17 +271,17 @@ private def checkAltNames (alts : Array Alt) (altsSyntax : Array Syntax) : Tacti
     let altName := getAltName altStx
     if altName != `_ then
       if seenNames.contains altName then
-        throwErrorAt altStx s!"duplicate alternative name '{altName}'"
+        throwErrorAt altStx s!"duplicate alternative name `{altName}`"
       seenNames := seenNames.push altName
       unless alts.any (·.name == altName) do
         let unhandledAlts := alts.filter fun alt => !seenNames.contains alt.name
         let msg :=
           if unhandledAlts.isEmpty then
-            m!"invalid alternative name '{altName}', no unhandled alternatives"
+            m!"invalid alternative name `{altName}`, no unhandled alternatives"
           else
-            let unhandledAltsMessages := unhandledAlts.map (m!"'{·.name}'")
+            let unhandledAltsMessages := unhandledAlts.map (m!"`{·.name}`")
             let unhandledAlts := MessageData.orList unhandledAltsMessages.toList
-            m!"invalid alternative name '{altName}', expected {unhandledAlts}"
+            m!"invalid alternative name `{altName}`, expected {unhandledAlts}"
         throwErrorAt altStx msg
 
 
@@ -410,7 +410,7 @@ where
           applyAltStx tacSnaps altStxs altStxIdx altStx alt
         alts := #[]
       else
-        throwErrorAt altStx "unused alternative '{altName}'"
+        throwErrorAt altStx "unused alternative `{altName}`"
 
     -- now process remaining alternatives; these might either be unreachable or we're in `induction`
     -- without `with`. In all other cases, remaining alternatives are flagged as errors.
@@ -434,7 +434,7 @@ where
         -- User did not provide alternatives using `|`
         setGoals <| (← getGoals) ++ altMVarIds
       else if !altMVarIds.isEmpty then
-        logError m!"alternative '{altName}' has not been provided"
+        logError m!"alternative `{altName}` has not been provided"
         altMVarIds.forM fun mvarId => admitGoal mvarId
 
   /-- Applies syntactic alternative to alternative goal. -/
@@ -445,7 +445,7 @@ where
     let altVars := getAltVars altStx
     let numFieldsToName ← if altHasExplicitModifier altStx then pure numFields else getNumExplicitFields altMVarId numFields
     if altVars.size > numFieldsToName then
-      logError m!"too many variable names provided at alternative '{altName}', #{altVars.size} provided, but #{numFieldsToName} expected"
+      logError m!"too many variable names provided at alternative `{altName}`, #{altVars.size} provided, but #{numFieldsToName} expected"
     let mut (fvarIds, altMVarId) ← altMVarId.introN numFields (altVars.toList.map getNameOfIdent') (useNamesForExplicitOnly := !altHasExplicitModifier altStx)
     -- Delay adding the infos for the pattern LHS because we want them to nest
     -- inside tacticInfo for the current alternative (in `evalAlt`)
@@ -457,7 +457,7 @@ where
     let unusedAlt := do
       addInfo
       if !isWildcard altStx then
-        throwError "alternative '{altName}' is not needed"
+        throwError "alternative `{altName}` is not needed"
     let some (altMVarId', subst) ← Cases.unifyEqs? numEqs altMVarId {}
       | unusedAlt
     altMVarId ← if info.provesMotive then
@@ -533,7 +533,7 @@ private def generalizeVars (mvarId : MVarId) (stx : Syntax) (targets : Array Exp
       if forbidden.contains userFVarId then
         throwError "variable cannot be generalized because target depends on it{indentExpr (mkFVar userFVarId)}"
       if s.contains userFVarId then
-        throwError "unnecessary 'generalizing' argument, variable '{mkFVar userFVarId}' is generalized automatically"
+        throwError "unnecessary 'generalizing' argument, variable `{mkFVar userFVarId}` is generalized automatically"
       s := s.insert userFVarId
     let fvarIds ← sortFVarIds s.toArray
     let (fvarIds, mvarId') ← mvarId.revert fvarIds
@@ -674,7 +674,7 @@ def getInductiveValFromMajor (induction : Bool) (major : Expr) : TacticM Inducti
     matchConstInduct majorType.getAppFn
       (fun _ => do
         let tacticName := if induction then `induction else `cases
-        let mut hint := m!"\n\nExplanation: the '{tacticName}' tactic is for constructor-based reasoning \
+        let mut hint := m!"\n\nExplanation: the `{tacticName}` tactic is for constructor-based reasoning \
           as well as for applying custom {tacticName} principles with a 'using' clause or a registered '@[{tacticName}_eliminator]' theorem. \
           The above type neither is an inductive type nor has a registered theorem."
         if majorType.isProp then
@@ -730,9 +730,9 @@ private def getElimNameInfo (optElimId : Syntax) (targets : Array Expr) (inducti
       throwError "eliminator must be provided when multiple targets are used (use 'using <eliminator-name>'), and no default eliminator has been registered using attribute `[eliminator]`"
     let indVal ← getInductiveValFromMajor induction targets[0]!
     if induction && indVal.all.length != 1 then
-      throwError "'induction' tactic does not support mutually inductive types, the eliminator '{mkRecName indVal.name}' has multiple motives"
+      throwError "'induction' tactic does not support mutually inductive types, the eliminator `{mkRecName indVal.name}` has multiple motives"
     if induction && indVal.isNested then
-      throwError "'induction' tactic does not support nested inductive types, the eliminator '{mkRecName indVal.name}' has multiple motives"
+      throwError "'induction' tactic does not support nested inductive types, the eliminator `{mkRecName indVal.name}` has multiple motives"
     let elimName := if induction then mkRecName indVal.name else mkCasesOnName indVal.name
     getElimInfo elimName indVal.name
   else
@@ -911,12 +911,12 @@ def elabFunTargetCall (cases : Bool) (stx : Syntax) : TacticM Expr := do
     let unfolding := tactic.fun_induction.unfolding.get (← getOptions)
     let some funIndInfo ← getFunIndInfo? (cases := cases) (unfolding := unfolding) fnName |
       let theoremKind := if cases then "cases" else "induction"
-      throwError "no functional {theoremKind} theorem for '{.ofConstName fnName}', or function is mutually recursive "
+      throwError "no functional {theoremKind} theorem for `{.ofConstName fnName}`, or function is mutually recursive "
     let candidates ← FunInd.collect funIndInfo (← getMainGoal)
     if candidates.isEmpty then
-      throwError "could not find suitable call of '{.ofConstName fnName}' in the goal"
+      throwError "could not find suitable call of `{.ofConstName fnName}` in the goal"
     if candidates.size > 1 then
-      throwError "found more than one suitable call of '{.ofConstName fnName}' in the goal. \
+      throwError "found more than one suitable call of `{.ofConstName fnName}` in the goal. \
         Please include the desired arguments."
     pure candidates[0]!
   | _ =>
@@ -934,9 +934,9 @@ private def elabFunTarget (cases : Bool) (stx : Syntax) : TacticM (ElimInfo × A
     let unfolding := tactic.fun_induction.unfolding.get (← getOptions)
     let some funIndInfo ← getFunIndInfo? (cases := cases) (unfolding := unfolding) fnName |
       let theoremKind := if cases then "cases" else "induction"
-      throwError "no functional {theoremKind} theorem for '{.ofConstName fnName}', or function is mutually recursive "
+      throwError "no functional {theoremKind} theorem for `{.ofConstName fnName}`, or function is mutually recursive "
     if funArgs.size != funIndInfo.params.size then
-      throwError "Expected fully applied application of '{.ofConstName fnName}' with \
+      throwError "Expected fully applied application of `{.ofConstName fnName}` with \
         {funIndInfo.params.size} arguments, but found {funArgs.size} arguments"
     let mut params := #[]
     let mut targets := #[]

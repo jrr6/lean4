@@ -58,9 +58,9 @@ def withRWRulesSeq (token : Syntax) (rwRulesSeqStx : Syntax) (x : (symm : Bool) 
             let declName ← try realizeGlobalConstNoOverload id catch _ => return (← x symm term)
             let some eqThms ← getEqnsFor? declName | x symm term
             let hint := if eqThms.size = 1 then m!"" else
-              m!" Try rewriting with '{Name.str declName unfoldThmSuffix}'."
+              m!" Try rewriting with `{Name.str declName unfoldThmSuffix}`."
             let rec go : List Name →  TacticM Unit
-              | [] => throwError "failed to rewrite using equation theorems for '{declName}'.{hint}"
+              | [] => throwError "failed to rewrite using equation theorems for `{declName}`.{hint}"
               | eqThm::eqThms => (x symm (mkCIdentFrom id eqThm)) <|> go eqThms
             discard <| Term.addTermInfo id (← mkConstWithFreshMVarLevels declName) (lctx? := ← getLCtx)
             go eqThms.toList

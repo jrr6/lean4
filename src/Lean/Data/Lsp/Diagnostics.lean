@@ -33,7 +33,7 @@ instance : FromJson DiagnosticSeverity := ⟨fun j =>
   | Except.ok 2 => return DiagnosticSeverity.warning
   | Except.ok 3 => return DiagnosticSeverity.information
   | Except.ok 4 => return DiagnosticSeverity.hint
-  | _           => throw s!"unknown DiagnosticSeverity '{j}'"⟩
+  | _           => throw s!"unknown DiagnosticSeverity `{j}`"⟩
 
 instance : ToJson DiagnosticSeverity := ⟨fun
   | DiagnosticSeverity.error       => 1
@@ -50,7 +50,7 @@ inductive DiagnosticCode where
 instance : FromJson DiagnosticCode := ⟨fun
   | num (i : Int) => return DiagnosticCode.int i
   | str s         => return DiagnosticCode.string s
-  | j             => throw s!"expected string or integer diagnostic code, got '{j}'"⟩
+  | j             => throw s!"expected string or integer diagnostic code, got `{j}`"⟩
 
 instance : ToJson DiagnosticCode := ⟨fun
   | DiagnosticCode.int i    => i

@@ -181,7 +181,7 @@ partial def evalTactic (stx : Syntax) : TacticM Unit := do
         let evalFns := tacticElabAttribute.getEntries (← getEnv) stx.getKind
         let macros  := macroAttribute.getEntries (← getEnv) stx.getKind
         if evalFns.isEmpty && macros.isEmpty then
-          throwErrorAt stx "tactic '{stx.getKind}' has not been implemented"
+          throwErrorAt stx "tactic `{stx.getKind}` has not been implemented"
         let s ← Tactic.saveState
         expandEval s macros evalFns #[]
     | .missing => pure ()

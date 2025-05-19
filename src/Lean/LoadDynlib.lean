@@ -88,14 +88,14 @@ def loadPlugin (path : System.FilePath) : IO Unit := do
   -- We never want to look up plugins using the system library search
   let path ← IO.FS.realPath path
   let some name := path.fileStem
-    | throw <| IO.userError s!"error, plugin has invalid file name '{path}'"
+    | throw <| IO.userError s!"error, plugin has invalid file name `{path}`"
   let dynlib ← Dynlib.load path
   -- Lean libraries can be prefixed with `lib` or suffixed with `_shared`
   -- under some configurations. We strip these from the initializer symbol.
   let name := name.stripPrefix "lib" |>.stripSuffix "_shared"
   let name := s!"initialize_{name}"
   let some sym := dynlib.get? name
-    | throw <| IO.userError s!"error loading plugin, initializer not found '{name}'"
+    | throw <| IO.userError s!"error loading plugin, initializer not found `{name}`"
   -- Lean never unloads plugins (once initialized).
   -- Safety: There are no concurrent accesses to `dynlib` at this point.
   let _ ← unsafe Runtime.markPersistent dynlib

@@ -73,7 +73,7 @@ unsafe def mkFormatterAttribute : IO (KeyedDeclsAttribute Formatter) :=
       -- `isValidSyntaxNodeKind` is updated only in the next stage for new `[builtin*Parser]`s, but we try to
       -- synthesize a formatter for it immediately, so we just check for a declaration in this case
       unless (builtin && (env.find? id).isSome) || Parser.isValidSyntaxNodeKind env id do
-        throwError "invalid [formatter] argument, unknown syntax kind '{id}'"
+        throwError "invalid [formatter] argument, unknown syntax kind `{id}`"
       if (← getEnv).contains id && (← Elab.getInfoState).enabled then
         Elab.addConstInfo stx id none
       pure id
@@ -307,7 +307,7 @@ def andthen.formatter (p1 p2 : Formatter) : Formatter := p2 *> p1
 def checkKind (k : SyntaxNodeKind) : FormatterM Unit := do
   let stx ← getCur
   if k != stx.getKind then
-    trace[PrettyPrinter.format.backtrack] "unexpected node kind '{stx.getKind}', expected '{k}'"
+    trace[PrettyPrinter.format.backtrack] "unexpected node kind `{stx.getKind}`, expected `{k}`"
     throwBacktrack
 
 @[combinator_formatter node]
@@ -411,7 +411,7 @@ def symbolNoAntiquot.formatter (sym : String) : Formatter := do
     withMaybeTag (getExprPos? stx) (pushToken info sym false)
     goLeft
   else do
-    trace[PrettyPrinter.format.backtrack] "unexpected syntax '{format stx}', expected symbol '{sym}'"
+    trace[PrettyPrinter.format.backtrack] "unexpected syntax `{format stx}`, expected symbol `{sym}`"
     throwBacktrack
 
 @[combinator_formatter nonReservedSymbolNoAntiquot] def nonReservedSymbolNoAntiquot.formatter := symbolNoAntiquot.formatter

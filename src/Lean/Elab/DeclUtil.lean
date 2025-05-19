@@ -18,16 +18,16 @@ def forallTelescopeCompatibleAux (k : Array Expr → Expr → Expr → MetaM α)
     | .forallE n₁ d₁ b₁ c₁, .forallE n₂ d₂ b₂ c₂ =>
       -- Remark: we use `mkIdent` to ensure macroscopes do not leak into error messages
       unless c₁ == c₂ do
-        throwError "binder annotation mismatch at parameter '{mkIdent n₁}'"
+        throwError "binder annotation mismatch at parameter `{mkIdent n₁}`"
       /-
       Remark: recall that users may suppress parameter names for instance implicit arguments.
       A fresh name (with macro scopes) is generated in this case. Thus, we allow the names
       to be different in this case. See issue #4310.
       -/
       unless n₁ == n₂ || (c₁.isInstImplicit && n₁.hasMacroScopes && n₂.hasMacroScopes) do
-        throwError "parameter name mismatch '{mkIdent n₁}', expected '{mkIdent n₂}'"
+        throwError "parameter name mismatch `{mkIdent n₁}`, expected `{mkIdent n₂}`"
       unless (← isDefEq d₁ d₂) do
-        throwError "parameter '{mkIdent n₁}' {← mkHasTypeButIsExpectedMsg d₁ d₂}"
+        throwError "parameter `{mkIdent n₁}` {← mkHasTypeButIsExpectedMsg d₁ d₂}"
       withLocalDecl n₁ c₁ d₁ fun x =>
         let type₁ := b₁.instantiate1 x
         let type₂ := b₂.instantiate1 x
@@ -74,7 +74,7 @@ Remark: `scopeParams` and `allUserParams` are in reverse declaration order. That
 -/
 def sortDeclLevelParams (scopeParams : List Name) (allUserParams : List Name) (usedParams : Array Name) : Except String (List Name) :=
   match allUserParams.find? fun u => !usedParams.contains u && !scopeParams.elem u with
-  | some u => throw s!"unused universe parameter '{u}'"
+  | some u => throw s!"unused universe parameter `{u}`"
   | none   =>
     -- Recall that `allUserParams` (like `scopeParams`) are in reverse order. That is, the last declared universe is the first element of the list.
     -- The following `foldl` will reverse the elements and produce a list of universe levels using the user given order.

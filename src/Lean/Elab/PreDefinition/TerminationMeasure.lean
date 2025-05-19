@@ -71,7 +71,7 @@ def TerminationMeasure.elab (funName : Name) (type : Expr) (arity extraParams : 
 
         -- Structural recursion: The body has to be a single parameter, whose index we return
         if hint.structural then unless (ys ++ xs).contains body do
-          let params := MessageData.andList ((ys ++ xs).toList.map (m!"'{·}'"))
+          let params := MessageData.andList ((ys ++ xs).toList.map (m!"`{·}`"))
           throwErrorAt hint.ref m!"The termination measure of a structurally recursive " ++
             m!"function must be one of the parameters {params}, but{indentExpr body}\nisn't " ++
             m!"one of these."

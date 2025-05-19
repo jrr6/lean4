@@ -446,7 +446,7 @@ where
 
   getUserName (mv : MVarId) := do return (← mv.getDecl).userName
 
-  showTagName (tagName : Name) : MessageData := m!"'{tagName}'"
+  showTagName (tagName : Name) : MessageData := m!"`{tagName}`"
 
   -- Construct a comma-separated list that renders one per line,
   -- indented, if it's too long

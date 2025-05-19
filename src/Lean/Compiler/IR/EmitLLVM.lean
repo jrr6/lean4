@@ -664,9 +664,9 @@ def emitExternCall (builder : LLVM.Builder llvmctx)
   match getExternEntryFor extData `c with
   | some (ExternEntry.standard _ extFn) => emitSimpleExternalCall builder extFn ps ys retty name
   | some (ExternEntry.inline `llvm _pat) => throw "Unimplemented codegen of inline LLVM"
-  | some (ExternEntry.inline _ pat) => throw s!"Cannot codegen non-LLVM inline code '{pat}'."
+  | some (ExternEntry.inline _ pat) => throw s!"Cannot codegen non-LLVM inline code `{pat}`."
   | some (ExternEntry.foreign _ extFn)  => emitSimpleExternalCall builder extFn ps ys retty name
-  | _ => throw s!"Failed to emit extern application '{f}'."
+  | _ => throw s!"Failed to emit extern application `{f}`."
 
 def getFunIdTy (f : FunId) : M llvmctx (LLVM.LLVMType llvmctx) := do
   let decl ← getDecl f
@@ -823,7 +823,7 @@ def emitSProj (builder : LLVM.Builder llvmctx)
     | IRType.uint16  => pure ("lean_ctor_get_uint16", ←  LLVM.i16Type llvmctx)
     | IRType.uint32  => pure ("lean_ctor_get_uint32", ← LLVM.i32Type llvmctx)
     | IRType.uint64  => pure ("lean_ctor_get_uint64", ← LLVM.i64Type llvmctx)
-    | _              => throw s!"Invalid type for lean_ctor_get: '{t}'"
+    | _              => throw s!"Invalid type for lean_ctor_get: `{t}`"
   let argtys := #[ ← LLVM.voidPtrType llvmctx, ← LLVM.unsignedType llvmctx]
   let fn ← getOrCreateFunctionPrototype (← getLLVMModule) retty fnName argtys
   let xval ← emitLhsVal builder x
@@ -1021,14 +1021,14 @@ def emitTailCall (builder : LLVM.Builder llvmctx) (f : FunId) (v : Expr) : M llv
   | Expr.fap _ ys => do
     let llvmctx ← read
     let ps := llvmctx.mainParams
-    unless ps.size == ys.size do throw s!"Invalid tail call. f:'{f}' v:'{v}'"
+    unless ps.size == ys.size do throw s!"Invalid tail call. f:`{f}` v:`{v}`"
     let args ← ys.mapM (fun y => Prod.snd <$> emitArgVal builder y)
     let fn ← builderGetInsertionFn builder
     let call ← LLVM.buildCall2 builder (← getFunIdTy f) fn args
     -- TODO (bollu) : add 'musttail' attribute using the C API.
     LLVM.setTailCall call true -- mark as tail call
     let _ ← LLVM.buildRet builder call
-  | _ => throw s!"EmitTailCall expects function application, found '{v}'"
+  | _ => throw s!"EmitTailCall expects function application, found `{v}`"
 
 def emitJmp (builder : LLVM.Builder llvmctx) (jp : JoinPointId) (xs : Array Arg) : M llvmctx Unit := do
  let llvmctx ← read
@@ -1050,7 +1050,7 @@ def emitSSet (builder : LLVM.Builder llvmctx) (x : VarId) (n : Nat) (offset : Na
   | IRType.uint16  => pure ("lean_ctor_set_uint16", ← LLVM.i16Type llvmctx)
   | IRType.uint32  => pure ("lean_ctor_set_uint32", ← LLVM.i32Type llvmctx)
   | IRType.uint64  => pure ("lean_ctor_set_uint64", ← LLVM.i64Type llvmctx)
-  | _              => throw s!"invalid type for 'lean_ctor_set': '{t}'"
+  | _              => throw s!"invalid type for 'lean_ctor_set': `{t}`"
   let argtys := #[ ← LLVM.voidPtrType llvmctx, ← LLVM.unsignedType llvmctx, setty]
   let retty  ← LLVM.voidType llvmctx
   let fn ← getOrCreateFunctionPrototype (← getLLVMModule) retty fnName argtys
@@ -1462,7 +1462,7 @@ def emitMainFn (mod : LLVM.Module llvmctx) (builder : LLVM.Builder llvmctx) : M 
    | .fdecl (xs := xs) .. => pure xs
    | _ =>  throw "Function declaration expected for 'main'"
 
-  unless xs.size == 2 || xs.size == 1 do throw s!"Invalid main function, main expected to have '2' or '1' arguments, found '{xs.size}' arguments"
+  unless xs.size == 2 || xs.size == 1 do throw s!"Invalid main function, main expected to have '2' or '1' arguments, found `{xs.size}` arguments"
   let env ← getEnv
   let usesLeanAPI := usesModuleFrom env `Lean
   let mainTy ← LLVM.functionType (← LLVM.i64Type llvmctx)
@@ -1630,11 +1630,11 @@ def emitLLVM (env : Environment) (modName : Name) (filepath : String) : IO Unit 
          -- Mark every global and function as having internal linkage.
          for name in runtimeGlobals do
            let some global ← LLVM.getNamedGlobal emitLLVMCtx.llvmmodule name
-              | throw <| IO.Error.userError s!"ERROR: linked module must have global from runtime module: '{name}'"
+              | throw <| IO.Error.userError s!"ERROR: linked module must have global from runtime module: `{name}`"
            LLVM.setLinkage global LLVM.Linkage.internal
          for name in runtimeFunctions do
            let some fn ← LLVM.getNamedFunction emitLLVMCtx.llvmmodule name
-              | throw <| IO.Error.userError s!"ERROR: linked module must have function from runtime module: '{name}'"
+              | throw <| IO.Error.userError s!"ERROR: linked module must have function from runtime module: `{name}`"
            LLVM.setLinkage fn LLVM.Linkage.internal
          if let some err ← LLVM.verifyModule emitLLVMCtx.llvmmodule then
            throw <| .userError err

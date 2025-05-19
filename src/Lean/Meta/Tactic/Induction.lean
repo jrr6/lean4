@@ -139,16 +139,16 @@ def getMajorTypeIndices (mvarId : MVarId) (tacticName : Name) (recursorInfo : Re
       majorTypeArgs.size.forM fun i _ => do
         let arg := majorTypeArgs[i]
         if i != idxPos && arg == idx then
-          throwTacticEx tacticName mvarId m!"'{idx}' is an index in major premise, but it occurs more than once{indentExpr majorType}"
+          throwTacticEx tacticName mvarId m!"`{idx}` is an index in major premise, but it occurs more than once{indentExpr majorType}"
         if i < idxPos then
           if (← exprDependsOn arg idx.fvarId!) then
-            throwTacticEx tacticName mvarId m!"'{idx}' is an index in major premise, but it occurs in previous arguments{indentExpr majorType}"
+            throwTacticEx tacticName mvarId m!"`{idx}` is an index in major premise, but it occurs in previous arguments{indentExpr majorType}"
         -- If arg is also and index and a variable occurring after `idx`, we need to make sure it doesn't depend on `idx`.
         -- Note that if `arg` is not a variable, we will fail anyway when we visit it.
         if i > idxPos && recursorInfo.indicesPos.contains i && arg.isFVar then
           let idxDecl ← idx.fvarId!.getDecl
           if (← localDeclDependsOn idxDecl arg.fvarId!) then
-            throwTacticEx tacticName mvarId m!"'{idx}' is an index in major premise, but it depends on index occurring at position #{i+1}"
+            throwTacticEx tacticName mvarId m!"`{idx}` is an index in major premise, but it depends on index occurring at position #{i+1}"
       return idx
 
 /--
@@ -180,7 +180,7 @@ def mkRecursorAppPrefix (mvarId : MVarId) (tacticName : Name) (majorFVarId : FVa
               else
                 pure (recursorLevels.push majorTypeFnLevels[idx], foundTargetLevel)
       if !foundTargetLevel && !targetLevel.isZero then
-        throwTacticEx tacticName mvarId m!"recursor '{recursorInfo.recursorName}' can only eliminate into Prop"
+        throwTacticEx tacticName mvarId m!"recursor `{recursorInfo.recursorName}` can only eliminate into Prop"
       let recursor := mkConst recursorInfo.recursorName recursorLevels.toList
       let recursor ← addRecParams mvarId majorTypeArgs recursorInfo.paramsPos recursor
       -- Compute motive
@@ -210,7 +210,7 @@ def _root_.Lean.MVarId.induction (mvarId : MVarId) (majorFVarId : FVarId) (recur
       let indices ← getMajorTypeIndices mvarId `induction recursorInfo majorType
       let target ← mvarId.getType
       if (← pure !recursorInfo.depElim <&&> exprDependsOn target majorFVarId) then
-        throwTacticEx `induction mvarId m!"recursor '{recursorName}' does not support dependent elimination, but conclusion depends on major premise"
+        throwTacticEx `induction mvarId m!"recursor `{recursorName}` does not support dependent elimination, but conclusion depends on major premise"
       -- Revert indices and major premise preserving variable order
       let (reverted, mvarId) ← mvarId.revert ((indices.map Expr.fvarId!).push majorFVarId) true
       -- Re-introduce indices and major

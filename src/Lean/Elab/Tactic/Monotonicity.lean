@@ -53,7 +53,7 @@ def findMonoThms (e : Expr) : MetaM (Array Name) := do
 
 private def defaultFailK (f : Expr) (monoThms : Array Name) : MetaM α :=
   let extraMsg := if monoThms.isEmpty then m!"" else
-    m!"Tried to apply {.andList (monoThms.toList.map (m!"'{·}'"))}, but failed."
+    m!"Tried to apply {.andList (monoThms.toList.map (m!"`{·}`"))}, but failed."
   throwError "Failed to prove monotonicity of:{indentExpr f}\n{extraMsg}"
 
 private def applyConst (goal : MVarId) (name : Name) : MetaM (List MVarId) := do

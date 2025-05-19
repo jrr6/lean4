@@ -31,7 +31,7 @@ def substCore (mvarId : MVarId) (hFVarId : FVarId) (symm := false) (fvarSubst : 
         let aFVarIdOriginal := aFVarId
         trace[Meta.Tactic.subst] "substituting {a} (id: {aFVarId.name}) with {b}"
         if (← exprDependsOn b aFVarId) then
-          throwTacticEx `subst mvarId m!"'{a}' occurs at{indentExpr b}"
+          throwTacticEx `subst mvarId m!"`{a}` occurs at{indentExpr b}"
         let (vars, mvarId) ← mvarId.revert #[aFVarId, hFVarId] true
         trace[Meta.Tactic.subst] "after revert {MessageData.ofGoal mvarId}"
         let (twoVars, mvarId) ← mvarId.introNP 2
@@ -146,7 +146,7 @@ partial def substVar (mvarId : MVarId) (x : FVarId) : MetaM MVarId :=
   mvarId.withContext do
     let localDecl ← x.getDecl
     if localDecl.isLet then
-      throwTacticEx `subst mvarId m!"variable '{mkFVar x}' is a let-declaration"
+      throwTacticEx `subst mvarId m!"variable `{mkFVar x}` is a let-declaration"
     let lctx ← getLCtx
     let some (fvarId, symm) ← lctx.findDeclM? fun localDecl => do
        if localDecl.isImplementationDetail then
@@ -164,7 +164,7 @@ partial def substVar (mvarId : MVarId) (x : FVarId) : MetaM MVarId :=
                return some (localDecl.fvarId, false)
            return none
          | _ => return none
-      | throwTacticEx `subst mvarId m!"did not find equation for eliminating '{mkFVar x}'"
+      | throwTacticEx `subst mvarId m!"did not find equation for eliminating `{mkFVar x}`"
     return (← substCore mvarId fvarId (symm := symm) (tryToSkip := true)).2
 
 partial def subst (mvarId : MVarId) (h : FVarId) : MetaM MVarId :=

@@ -33,9 +33,9 @@ def getDeclNamesForCodeGen : Declaration → List Name
 
 def checkIsDefinition (env : Environment) (n : Name) : Except String Unit := do
   let some info := env.findAsync? n
-    | throw s!"unknown declaration '{n}'"
+    | throw s!"unknown declaration `{n}`"
   unless info.kind matches .defn | .opaque do
-    throw s!"declaration is not a definition '{n}'"
+    throw s!"declaration is not a definition `{n}`"
 
 /--
   We generate auxiliary unsafe definitions for regular recursive definitions.

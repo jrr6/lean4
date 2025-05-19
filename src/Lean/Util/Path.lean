@@ -111,8 +111,8 @@ partial def findOLean (mod : Name) : IO FilePath := do
     return fname
   else
     let pkg := FilePath.mk <| mod.getRoot.toString (escape := false)
-    throw <| IO.userError s!"unknown module prefix '{pkg}'\n\n\
-      No directory '{pkg}' or file '{pkg}.olean' in the search path entries:\n\
+    throw <| IO.userError s!"unknown module prefix `{pkg}`\n\n\
+      No directory `{pkg}` or file '{pkg}.olean' in the search path entries:\n\
       {"\n".intercalate <| sp.map (·.toString)}"
 
 /-- Find the `.lean` source of a module in a `LEAN_SRC_PATH` search path. -/
@@ -121,8 +121,8 @@ partial def findLean (sp : SearchPath) (mod : Name) : IO FilePath := do
     return fname
   else
     let pkg := FilePath.mk <| mod.getRoot.toString (escape := false)
-    throw <| IO.userError s!"unknown module prefix '{pkg}'\n\n\
-      No directory '{pkg}' or file '{pkg}.lean' in the search path entries:\n\
+    throw <| IO.userError s!"unknown module prefix `{pkg}`\n\n\
+      No directory `{pkg}` or file '{pkg}.lean' in the search path entries:\n\
       {"\n".intercalate <| sp.map (·.toString)}"
 
 def getSrcSearchPath : IO SearchPath := do
@@ -144,7 +144,7 @@ def moduleNameOfFileName (fname : FilePath) (rootDir : Option FilePath) : IO Nam
   if !rootDir.toString.endsWith System.FilePath.pathSeparator.toString then
     rootDir := ⟨rootDir.toString ++ System.FilePath.pathSeparator.toString⟩
   if !rootDir.toString.isPrefixOf fname.normalize.toString then
-    throw $ IO.userError s!"input file '{fname}' must be contained in root directory ({rootDir})"
+    throw $ IO.userError s!"input file `{fname}` must be contained in root directory ({rootDir})"
   -- NOTE: use `fname` instead of `fname.normalize` to preserve casing on all platforms
   let fnameSuffix := fname.toString.drop rootDir.toString.length
   let modNameStr := FilePath.mk fnameSuffix |>.withExtension ""

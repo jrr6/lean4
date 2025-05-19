@@ -150,10 +150,10 @@ def registerTagAttribute (name : Name) (descr : String)
     ref, name, descr, applicationTime
     add   := fun decl stx kind => do
       Attribute.Builtin.ensureNoArgs stx
-      unless kind == AttributeKind.global do throwError "invalid attribute '{name}', must be global"
+      unless kind == AttributeKind.global do throwError "invalid attribute `{name}`, must be global"
       let env ← getEnv
       unless (env.getModuleIdxFor? decl).isNone do
-        throwError "invalid attribute '{name}', declaration is in an imported module"
+        throwError "invalid attribute `{name}`, declaration is in an imported module"
       validate decl
       modifyEnv fun env => ext.addEntry env decl
   }
@@ -199,10 +199,10 @@ def registerParametricAttribute (impl : ParametricAttributeImpl α) : IO (Parame
   let attrImpl : AttributeImpl := {
     impl.toAttributeImplCore with
     add   := fun decl stx kind => do
-      unless kind == AttributeKind.global do throwError "invalid attribute '{impl.name}', must be global"
+      unless kind == AttributeKind.global do throwError "invalid attribute `{impl.name}`, must be global"
       let env ← getEnv
       unless (env.getModuleIdxFor? decl).isNone do
-        throwError "invalid attribute '{impl.name}', declaration is in an imported module"
+        throwError "invalid attribute `{impl.name}`, declaration is in an imported module"
       let val ← impl.getParam decl stx
       modifyEnv fun env => ext.addEntry env (decl, val)
       try impl.afterSet decl val catch _ => setEnv env
@@ -266,10 +266,10 @@ def registerEnumAttributes (attrDescrs : List (Name × String × α))
     descr           := descr
     add             := fun decl stx kind => do
       Attribute.Builtin.ensureNoArgs stx
-      unless kind == AttributeKind.global do throwError "invalid attribute '{name}', must be global"
+      unless kind == AttributeKind.global do throwError "invalid attribute `{name}`, must be global"
       let env ← getEnv
       unless (env.getModuleIdxFor? decl).isNone do
-        throwError "invalid attribute '{name}', declaration is in an imported module"
+        throwError "invalid attribute `{name}`, declaration is in an imported module"
       validate decl val
       modifyEnv fun env => ext.addEntry env (decl, val)
     applicationTime := applicationTime
@@ -290,11 +290,11 @@ def getValue [Inhabited α] (attr : EnumAttributes α) (env : Environment) (decl
 
 def setValue (attrs : EnumAttributes α) (env : Environment) (decl : Name) (val : α) : Except String Environment := do
   if (env.getModuleIdxFor? decl).isSome then
-    throw s!"invalid '{attrs.ext.name}'.setValue, declaration is in an imported module"
+    throw s!"invalid `{attrs.ext.name}`.setValue, declaration is in an imported module"
   if !env.asyncMayContain decl then
-    throw s!"invalid '{attrs.ext.name}'.setValue, declaration is not from this async context"
+    throw s!"invalid `{attrs.ext.name}`.setValue, declaration is not from this async context"
   if ((attrs.ext.findStateAsync env decl).find? decl).isSome then
-    throw s!"invalid '{attrs.ext.name}'.setValue, attribute has already been set"
+    throw s!"invalid `{attrs.ext.name}`.setValue, attribute has already been set"
   return attrs.ext.addEntry env (decl, val)
 
 end EnumAttributes

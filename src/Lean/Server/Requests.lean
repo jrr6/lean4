@@ -130,7 +130,7 @@ def fileChanged : RequestError :=
 
 def methodNotFound (method : String) : RequestError :=
   { code := ErrorCode.methodNotFound
-    message := s!"No request handler found for '{method}'" }
+    message := s!"No request handler found for `{method}`" }
 
 def invalidParams (message : String) : RequestError :=
   { code := ErrorCode.invalidParams, message }
@@ -459,9 +459,9 @@ def registerLspRequestHandler (method : String)
     respType [ToJson respType]
     (handler : paramType → RequestM (RequestTask respType)) : IO Unit := do
   if !(← Lean.initializing) then
-    throw <| IO.userError s!"Failed to register LSP request handler for '{method}': only possible during initialization"
+    throw <| IO.userError s!"Failed to register LSP request handler for `{method}`: only possible during initialization"
   if (← requestHandlers.get).contains method then
-    throw <| IO.userError s!"Failed to register LSP request handler for '{method}': already registered"
+    throw <| IO.userError s!"Failed to register LSP request handler for `{method}`: already registered"
   let fileSource := fun j =>
     parseRequestParams paramType j |>.map Lsp.fileSource
   let handle := fun j => do
@@ -486,7 +486,7 @@ def chainLspRequestHandler (method : String)
     respType [FromJson respType] [ToJson respType]
     (handler : paramType → RequestTask respType → RequestM (RequestTask respType)) : IO Unit := do
   if !(← Lean.initializing) then
-    throw <| IO.userError s!"Failed to chain LSP request handler for '{method}': only possible during initialization"
+    throw <| IO.userError s!"Failed to chain LSP request handler for `{method}`: only possible during initialization"
   if let some oldHandler ← lookupLspRequestHandler method then
     let handle := fun j => do
       let t ← oldHandler.handle j
@@ -498,7 +498,7 @@ def chainLspRequestHandler (method : String)
 
     requestHandlers.modify fun rhs => rhs.insert method {oldHandler with handle}
   else
-    throw <| IO.userError s!"Failed to chain LSP request handler for '{method}': no initial handler registered"
+    throw <| IO.userError s!"Failed to chain LSP request handler for `{method}`: no initial handler registered"
 
 inductive RequestHandlerCompleteness where
   | complete
@@ -565,7 +565,7 @@ private def overrideStatefulLspRequestHandler
     (onDidChange : DidChangeTextDocumentParams → StateT stateType RequestM Unit)
     : IO Unit := do
   if !(← Lean.initializing) then
-    throw <| IO.userError s!"Failed to register stateful LSP request handler for '{method}': only possible during initialization"
+    throw <| IO.userError s!"Failed to register stateful LSP request handler for `{method}`: only possible during initialization"
   let fileSource := fun j =>
     parseRequestParams paramType j |>.map Lsp.fileSource
   let lastTaskMutex ← Std.Mutex.new <| ServerTask.pure ()
@@ -623,7 +623,7 @@ private def registerStatefulLspRequestHandler
     (onDidChange : DidChangeTextDocumentParams → StateT stateType RequestM Unit)
     : IO Unit := do
   if (← requestHandlers.get).contains method then
-    throw <| IO.userError s!"Failed to register stateful LSP request handler for '{method}': already registered"
+    throw <| IO.userError s!"Failed to register stateful LSP request handler for `{method}`: already registered"
   overrideStatefulLspRequestHandler method completeness paramType respType stateType initState handler onDidChange
 
 def registerCompleteStatefulLspRequestHandler (method : String)
@@ -667,9 +667,9 @@ def chainStatefulLspRequestHandler (method : String)
     (handler : paramType → LspResponse respType → stateType → RequestM (LspResponse respType × stateType))
     (onDidChange : DidChangeTextDocumentParams → StateT stateType RequestM Unit) : IO Unit := do
   if ! (← Lean.initializing) then
-    throw <| IO.userError s!"Failed to chain stateful LSP request handler for '{method}': only possible during initialization"
+    throw <| IO.userError s!"Failed to chain stateful LSP request handler for `{method}`: only possible during initialization"
   let some oldHandler ← lookupStatefulLspRequestHandler method
-    | throw <| IO.userError s!"Failed to chain stateful LSP request handler for '{method}': no initial handler registered"
+    | throw <| IO.userError s!"Failed to chain stateful LSP request handler for `{method}`: no initial handler registered"
   let oldHandle := oldHandler.pureHandle
   let oldOnDidChange := oldHandler.pureOnDidChange
   let initState ← getIOState! method oldHandler.initState stateType
@@ -698,13 +698,13 @@ def handleLspRequest (method : String) (params : Json) : RequestM (RequestTask (
     match ← lookupStatefulLspRequestHandler method with
     | none =>
       throw <| .internalError
-        s!"request '{method}' routed through watchdog but unknown in worker; are both using the same plugins?"
+        s!"request `{method}` routed through watchdog but unknown in worker; are both using the same plugins?"
     | some rh => rh.handle params
   else
     match ← lookupLspRequestHandler method with
     | none =>
       throw <| .internalError
-        s!"request '{method}' routed through watchdog but unknown in worker; are both using the same plugins?"
+        s!"request `{method}` routed through watchdog but unknown in worker; are both using the same plugins?"
     | some rh =>
       let t ← rh.handle params
       return t.mapCheap fun r => r.map ({response := ·, isComplete := true })

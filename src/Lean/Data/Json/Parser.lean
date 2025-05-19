@@ -217,7 +217,7 @@ mutual
     lookahead (fun c => c == ':') ":"; skip; ws
     let v ← anyCore
     let c ← any
-    if c == '}' then
+    if c == '}` then
       ws
       return kvs.insert compare k v
     else if c == ',' then
@@ -240,7 +240,7 @@ mutual
     else if c == '{' then
       skip; ws
       let c ← peek!
-      if c == '}' then
+      if c == '}` then
         skip; ws
         return Json.obj (RBNode.leaf)
       else

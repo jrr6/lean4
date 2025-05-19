@@ -322,8 +322,8 @@ def PostponeBehavior.ofBool : Bool → PostponeBehavior
 private def TacticMVarKind.logError (tacticCode : Syntax) (kind : TacticMVarKind) : TermElabM Unit := do
   match kind with
   | term => pure ()
-  | autoParam argName => logErrorAt tacticCode m!"could not synthesize default value for parameter '{argName}' using tactics"
-  | fieldAutoParam fieldName structName => logErrorAt tacticCode m!"could not synthesize default value for field '{fieldName}' of '{structName}' using tactics"
+  | autoParam argName => logErrorAt tacticCode m!"could not synthesize default value for parameter `{argName}` using tactics"
+  | fieldAutoParam fieldName structName => logErrorAt tacticCode m!"could not synthesize default value for field `{fieldName}` of `{structName}` using tactics"
 
 private def TacticMVarKind.maybeWithoutRecovery (kind : TacticMVarKind) (m : TacticM α) : TacticM α := do
   if kind matches .autoParam .. | .fieldAutoParam .. then

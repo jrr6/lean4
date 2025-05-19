@@ -70,7 +70,7 @@ private partial def mkUnfoldProof (declName : Name) (mvarId : MVarId) : MetaM Un
         -- At some point in the past, we looked for occurrences of Wf.fix to fold on the
         -- LHS (introduced in 096e4eb), but it seems that code path was never used,
         -- so #3133 removed it again (and can be recovered from there if this was premature).
-        throwError "failed to generate equational theorem for '{declName}'\n{MessageData.ofGoal mvarId}"
+        throwError "failed to generate equational theorem for `{declName}`\n{MessageData.ofGoal mvarId}"
 
 def mkUnfoldEq (preDef : PreDefinition) (unaryPreDefName : Name) (wfPreprocessProof : Simp.Result) : MetaM Unit := do
   let baseName := preDef.declName
@@ -120,7 +120,7 @@ def mkBinaryUnfoldEq (preDef : PreDefinition) (unaryPreDefName : Name) : MetaM U
       let mvarId ← deltaLHS mvarId -- unfold the function
       let mvarIds ← mvarId.applyConst unaryEqName
       unless mvarIds.isEmpty do
-        throwError "Failed to apply '{unaryEqName}' to '{mvarId}'"
+        throwError "Failed to apply `{unaryEqName}` to `{mvarId}`"
 
       let value ← instantiateMVars main
       let type ← mkForallFVars xs type

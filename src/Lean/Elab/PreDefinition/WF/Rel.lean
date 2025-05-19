@@ -34,7 +34,7 @@ def checkCodomains (names : Array Name) (fixedParamPerms : FixedParamPerms) (fix
       let fvars := xs.map (·.fvarId!)
       if codomain.hasAnyFVar (fvars.contains ·) then
         throwErrorAt termMeasure.ref  m!"The termination measure's type must not depend on the " ++
-          m!"function's varying parameters, but {name}'s termination measure does:{indentExpr measureType}\n" ++
+          m!"function's varying parameters, but {name}`s termination measure does:{indentExpr measureType}\n" ++
           "Try using `sizeOf` explicitly"
       pure codomain
     codomains := codomains.push codomain

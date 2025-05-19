@@ -102,7 +102,7 @@ See `Lean.Elab.Tactic.Ext.withExtHyps` for an explanation of the `flat` argument
 -/
 def realizeExtTheorem (structName : Name) (flat : Bool) : Elab.Command.CommandElabM Name := do
   unless isStructure (← getEnv) structName do
-    throwError "'{structName}' is not a structure"
+    throwError "`{structName}` is not a structure"
   let extName := structName.mkStr "ext"
   unless (← getEnv).contains extName do
     try
@@ -127,7 +127,7 @@ def realizeExtTheorem (structName : Name) (flat : Bool) : Elab.Command.CommandEl
         addDeclarationRangesFromSyntax extName (← getRef)
     catch e =>
       throwError m!"\
-        Failed to generate an 'ext' theorem for '{.ofConstName structName}': {e.toMessageData}"
+        Failed to generate an 'ext' theorem for `{.ofConstName structName}`: {e.toMessageData}"
   return extName
 
 /--
@@ -165,7 +165,7 @@ def realizeExtIffTheorem (extName : Name) : Elab.Command.CommandElabM Name := do
         addDeclarationRangesFromSyntax extIffName (← getRef)
     catch e =>
       throwError m!"\
-        Failed to generate an 'ext_iff' theorem from '{.ofConstName extName}': {e.toMessageData}\n\
+        Failed to generate an 'ext_iff' theorem from `{.ofConstName extName}`: {e.toMessageData}\n\
         \n\
         Try '@[ext (iff := false)]' to prevent generating an 'ext_iff' theorem."
   return extIffName

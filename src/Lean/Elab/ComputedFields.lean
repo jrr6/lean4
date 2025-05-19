@@ -73,9 +73,9 @@ def validateComputedFields : M Unit := do
   for cf in compFieldVars do
     let ty ← inferType cf
     if ty.containsFVar val.fvarId! then
-      throwError "computed field {cf}'s type must not depend on value{indentExpr ty}"
+      throwError "computed field {cf}`s type must not depend on value{indentExpr ty}"
     if indices.any (ty.containsFVar ·.fvarId!) then
-      throwError "computed field {cf}'s type must not depend on indices{indentExpr ty}"
+      throwError "computed field {cf}`s type must not depend on indices{indentExpr ty}"
 
 def mkImplType : M Unit := do
   let {name, isUnsafe, type, ctors, levelParams, numParams, lparams, params, compFieldVars, ..} ← read
@@ -206,7 +206,7 @@ def setComputedFields (computedFields : Array (Name × Array Name)) : MetaM Unit
   for (indName, computedFieldNames) in computedFields do
     for computedFieldName in computedFieldNames do
       unless computedFieldAttr.hasTag (← getEnv) computedFieldName do
-        logError m!"'{computedFieldName}' must be tagged with @[computed_field]"
+        logError m!"`{computedFieldName}` must be tagged with @[computed_field]"
     mkComputedFieldOverrides indName computedFieldNames
 
   -- Once all the implemented_by infrastructure is set up, compile everything.
