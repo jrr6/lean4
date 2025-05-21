@@ -12,15 +12,6 @@ import Lean.EnvExtension
 
 namespace Lean
 
-/--
-An error descriptor for thrown and logged errors.
-
-Error descriptors uniquely identify each thrown or logged error.
--/
--- Alternative: define this as `structure ErrorDescr where` and make `descr : Option ErrorDescr`
-structure ErrorDescr where
-  explanationName? : Option Name
-
 /-- Exception type used in most Lean monads -/
 inductive Exception where
   /-- Error messages that are displayed to users. `ref` is used to provide position information. -/

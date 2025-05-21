@@ -18,11 +18,13 @@ structure ErrorExplanation where
   metadata : ErrorExplanation.Metadata
 
 -- FIXME: `addImportedFn`
-initialize errorExplanationExt : SimplePersistentEnvExtension (Name × ErrorExplanation) (NameMap ErrorExplanation) ←
+initialize errorExplanationExt
+    : SimplePersistentEnvExtension (Name × ErrorExplanation) (NameMap ErrorExplanation) ←
   registerSimplePersistentEnvExtension {
     addEntryFn := fun s (n, v) => s.insert n v
     addImportedFn := fun entries => RBMap.ofList entries.flatten.toList
   }
+
 open Elab Meta Term Command in
 
 /--
@@ -37,35 +39,36 @@ elab docStx:docComment cmd:"register_error_explanation " nm:ident t:term : comma
     if e.hasSyntheticSorry then throwAbortTerm
     evalExpr ErrorExplanation.Metadata tp e
   let name := nm.getId
-  if name.isAnonymous then throwErrorAt nm "Invalid name for error explanation: '{nm}'"
+  if name.isAnonymous then throwErrorAt nm "Invalid name for error explanation: `{nm}`"
   validateDocComment docStx
   let doc ← getDocStringText docStx
   if errorExplanationExt.getState (← getEnv) |>.contains name then
-    throwError m!"Cannot add explanation: An error explanation already exists for '{name}'"
+    throwError m!"Cannot add explanation: An error explanation already exists for `{name}`"
   modifyEnv (errorExplanationExt.addEntry · (name, { metadata, doc }))
 
-/--
-Gets an error explanation for the given name if one exists, rewriting manual links.
--/
-def getErrorExplanation? [Monad m] [MonadEnv m] [MonadLiftT BaseIO m] (name : Name) : m (Option ErrorExplanation) :=
-  do
+/-- Returns `true` if an error explanation with name `name` has been registered. -/
+def hasErrorExplanation [Monad m] [MonadEnv m] (name : Name) : m Bool := do
+  return errorExplanationExt.getState (← getEnv) |>.contains name
+
+/-- Gets an error explanation for the given name if one exists, rewriting manual links. -/
+def getErrorExplanation? [Monad m] [MonadEnv m] [MonadLiftT BaseIO m] (name : Name)
+    : m (Option ErrorExplanation) := do
   let explan? := errorExplanationExt.getState (← getEnv) |>.find? name
   explan?.mapM fun explan =>
     return { explan with doc := (← rewriteManualLinks explan.doc) }
 
-private partial def compareNamedExplanations (ne ne' : Name × ErrorExplanation) : Ordering :=
+private partial def namedExplanationIsLT (ne ne' : Name × ErrorExplanation) : Bool :=
   match ne.2.metadata.removedVersion, ne'.2.metadata.removedVersion with
-  | .none, .none | .some _, .some _ => compare ne.1.toString ne'.1.toString
-  | .none, .some _ => .lt
-  | .some _, .none => .gt
+  | .none, .none | .some _, .some _ => ne.1.toString < ne'.1.toString
+  | .none, .some _ => true
+  | .some _, .none => false
 
-/--
-Returns all error explanations with their names as a sorted array, rewriting manual links.
--/
-def getErrorExplanationsSorted [Monad m] [MonadEnv m] [MonadLiftT BaseIO m] : m (Array (Name × ErrorExplanation)) := do
+/-- Returns all error explanations with their names as a sorted array, rewriting manual links. -/
+def getErrorExplanationsSorted [Monad m] [MonadEnv m] [MonadLiftT BaseIO m]
+    : m (Array (Name × ErrorExplanation)) := do
   let entries := errorExplanationExt.getState (← getEnv) |>.toArray
   entries
-    |>.qsort (fun e e' => (compareNamedExplanations e e').isLT)
+    |>.qsort (fun e e' => namedExplanationIsLT e e')
     |>.mapM fun (n, e) => return (n, { e with doc := (← rewriteManualLinks e.doc) })
 
 end Lean

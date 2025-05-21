@@ -21,6 +21,15 @@ def mkErrorStringWithPos (fileName : String) (pos : Position) (msg : String) (en
     | none        => ""
   s!"{fileName}:{pos.line}:{pos.column}{endPos}: {msg}"
 
+/--
+An error descriptor for thrown and logged errors.
+
+Error descriptors uniquely identify each thrown or logged error.
+-/
+structure ErrorDescr where
+  explanationName? : Option Name
+  deriving ToJson, FromJson
+
 inductive MessageSeverity where
   | information | warning | error
   deriving Inhabited, BEq, ToJson, FromJson
@@ -388,8 +397,8 @@ structure BaseMessage (α : Type u) where
   -/
   isSilent       : Bool := false
   caption        : String          := ""
-  /-- A name for a warning or error diagnostic associated with an explanation. -/
-  errorDescr? : Option ErrorDescr := none
+  /-- A programmatic descriptor for this diagnostic. -/
+  errorDescr?    : Option ErrorDescr := none
   /-- The content of the message. -/
   data           : α
   deriving Inhabited, ToJson, FromJson
