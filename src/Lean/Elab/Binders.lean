@@ -564,13 +564,15 @@ Note: This function assumes that the number of patterns in the first alternative
 `getMatchAltsNumPatterns`).
 -/
 private def checkMatchAltPatternCounts (matchAlts : Syntax) (numDiscrs : Nat) (expectedType : Expr)
-    : MetaM Unit := do
+    : TermElabM Unit := do
   let sepPats (pats : List Syntax) := MessageData.joinSep (pats.map toMessageData) ", "
   let maxDiscrs? ← forallTelescopeReducing expectedType fun xs e =>
     if e.getAppFn.isMVar then pure none else pure (some xs.size)
-  let matchAltViews := matchAlts[0].getArgs.filterMap getMatchAlt
-  let numPatternsStr (n : Nat) := s!"{n} {if n == 1 then "pattern" else "patterns"}"
+  let matchAltStxs := matchAlts[0].getArgs
+  let matchAltsExpanded := (← liftMacroM <| expandExtractedMatchAlts? matchAltStxs).getD matchAltStxs
+  let matchAltViews := matchAltsExpanded.filterMap getMatchAlt
   if h : matchAltViews.size > 0 then
+    let numPatternsStr (n : Nat) := s!"{n} {if n == 1 then "pattern" else "patterns"}"
     if let some maxDiscrs := maxDiscrs? then
       if numDiscrs > maxDiscrs then
         if maxDiscrs == 0 then
@@ -578,7 +580,7 @@ private def checkMatchAltPatternCounts (matchAlts : Syntax) (numDiscrs : Nat) (e
             by pattern matching because it is not a function type"
         else
           throwErrorAt matchAltViews[0].lhs m!"Too many patterns in match alternative: \
-            At most {numPatternsStr maxDiscrs} expected in a definition of type {indentExpr expectedType}\n\
+            At most {numPatternsStr maxDiscrs} expected in a definition of type{indentExpr expectedType}\n\
             but found {numDiscrs}:{indentD <| sepPats matchAltViews[0].patterns.toList}"
     -- Catch inconsistencies between pattern counts here so that we can report them as "inconsistent"
     -- rather than as "too many" or "too few" (as the `match` elaborator does)

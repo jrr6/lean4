@@ -44,11 +44,24 @@ def shouldExpandMatchAlt : TSyntax ``matchAlt → Bool
   | `(matchAltExpr| | $[$patss,*]|* => $_) => patss.size > 1
   | _ => false
 
+/--
+If `alts` contains any elements with multiple alternatives (e.g., `| a | b => rhs`), returns a new
+array where each entry contains exactly one alternative; if no alternatives need expanding, returns
+`none`.
+-/
+def expandExtractedMatchAlts? (alts : TSyntaxArray `Lean.Parser.Term.matchAlt) :
+    MacroM (Option (Array (TSyntax `Lean.Parser.Term.matchAlt))) := do
+  if alts.any shouldExpandMatchAlt then
+    some <$> alts.foldlM (init := #[]) fun alts alt => do
+      let expandedAlts ← withRef alt.raw <| expandMatchAlt alt
+      return alts ++ expandedAlts
+  else
+    return none
+
 def expandMatchAlts? (stx : Syntax) : MacroM (Option Syntax) := do
   match stx with
   | `(match $[$gen]? $[$motive]? $discrs,* with $alts:matchAlt*) =>
-    if alts.any shouldExpandMatchAlt then
-      let alts ← alts.foldlM (init := #[]) fun alts alt => return alts ++ (← expandMatchAlt alt)
+    if let some alts ← expandExtractedMatchAlts? alts then
       `(match $[$gen]? $[$motive]? $discrs,* with $alts:matchAlt*)
     else
       return none

@@ -38,7 +38,7 @@ def badType : Nat
   | 0 => 32
 
 /--
-error: Too many patterns in match alternative: At most 2 patterns expected in a definition of type ⏎
+error: Too many patterns in match alternative: At most 2 patterns expected in a definition of type
   Foo → Foo → Prop
 but found 3:
   f₁, f₂, f₃
@@ -48,7 +48,7 @@ def tooMany₁ : Foo → Foo → Prop
   | f₁, f₂, f₃ => True
 
 /--
-error: Too many patterns in match alternative: At most 2 patterns expected in a definition of type ⏎
+error: Too many patterns in match alternative: At most 2 patterns expected in a definition of type
   Foo → Foo → Prop
 but found 3:
   .foo, .foo, f
@@ -120,7 +120,7 @@ def withTyValOK : TyVal
   | x, _ => x
 
 /--
-error: Too many patterns in match alternative: At most 2 patterns expected in a definition of type ⏎
+error: Too many patterns in match alternative: At most 2 patterns expected in a definition of type
   TyVal
 but found 3:
   x, y, z
@@ -216,3 +216,25 @@ def checkCounterexampleMsg : Nat → Nat → Nat
   | x, 0 => x
   | 0, n + 1 => n
   | n + 1 => 42
+
+/--
+error: Inconsistent number of patterns in match alternatives: This alternative contains 2 patterns:
+  1, true
+but a preceding alternative contains 3:
+  0, true, 2
+-/
+#guard_msgs in
+def multiAltDef : Nat → Bool → Nat → Unit
+  | 0, true, 2 | 1, true => ()
+  | n + 1, false => ()
+  | _ , _ => ()
+
+/--
+error: Not enough patterns in match alternative: Expected 2, but found 1:
+  0
+-/
+#guard_msgs in
+def multiAltMatch (x y : Nat) :=
+  match x, y with
+    | m + 1, n + 1 | 0 => true
+    | _, _ => false
