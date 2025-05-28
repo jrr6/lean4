@@ -20,7 +20,6 @@ static lean_object* l___private_Lean_AddDecl_0__Lean_isSimpleRflProof___closed__
 static lean_object* l_Lean_initFn____x40_Lean_AddDecl___hyg_242____closed__1;
 LEAN_EXPORT lean_object* l_Lean_addDecl___lambda__3___boxed(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT uint8_t l_Lean_addDecl___lambda__2(lean_object*);
-static lean_object* l_Lean_logWarning___at_Lean_addDecl_doAdd___spec__1___closed__1;
 LEAN_EXPORT lean_object* l_Lean_throwInterruptException___at_Lean_addDecl_addAsAxiom___spec__4(lean_object*, lean_object*);
 lean_object* l_Lean_MapDeclarationExtension_insert___rarg(lean_object*, lean_object*, lean_object*, lean_object*);
 lean_object* l_Lean_Core_getMaxHeartbeats(lean_object*);
@@ -35,7 +34,7 @@ static lean_object* l_Lean_addDecl_doAdd___lambda__1___closed__2;
 static lean_object* l_Lean_addDecl_doAdd___lambda__3___closed__1;
 static lean_object* l_Lean_setEnv___at_Lean_addDecl_addSynchronously___spec__2___closed__2;
 static lean_object* l_Lean_initFn____x40_Lean_AddDecl___hyg_242____closed__3;
-lean_object* l_Lean_log___at_Lean_Core_wrapAsyncAsSnapshot___spec__13(lean_object*, uint8_t, lean_object*, lean_object*, lean_object*);
+lean_object* l_Lean_log___at_Lean_Core_wrapAsyncAsSnapshot___spec__13(lean_object*, uint8_t, uint8_t, lean_object*, lean_object*, lean_object*);
 lean_object* l_Lean_withTraceNode___at_Lean_Core_wrapAsyncAsSnapshot___spec__1___boxed(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 lean_object* l_Lean_Environment_header(lean_object*);
 LEAN_EXPORT lean_object* l_List_forIn_x27_loop___at_Lean_addDecl_addAsAxiom___spec__5___boxed(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
@@ -56,6 +55,7 @@ static lean_object* l_List_forIn_x27_loop___at_Lean_addDecl_addSynchronously___s
 lean_object* lean_array_push(lean_object*, lean_object*);
 static lean_object* l_Lean_RBMap_toArray___at_Lean_initFn____x40_Lean_AddDecl___hyg_242____spec__1___closed__1;
 static lean_object* l_Lean_initFn____x40_Lean_AddDecl___hyg_242____closed__7;
+uint8_t l_Lean_beqDefinitionSafety____x40_Lean_Declaration___hyg_685_(uint8_t, uint8_t);
 lean_object* l_Lean_compileDecl(lean_object*, uint8_t, lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* l_Lean_addDecl___lambda__7___boxed(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* l_Lean_RBNode_fold___at_Lean_initFn____x40_Lean_AddDecl___hyg_242____spec__2___boxed(lean_object*, lean_object*);
@@ -123,19 +123,16 @@ LEAN_EXPORT lean_object* l_Lean_ofExceptKernelException___at_Lean_addDecl_addAsA
 lean_object* l_Lean_Name_str___override(lean_object*, lean_object*);
 uint8_t l_Lean_ConstantKind_ofConstantInfo(lean_object*);
 lean_object* l_Lean_MapDeclarationExtension_find_x3f___rarg(lean_object*, lean_object*, lean_object*, lean_object*, uint8_t);
-extern lean_object* l_Lean_warningAsError;
 uint8_t l_Lean_Option_get___at___private_Lean_Util_Profile_0__Lean_get__profiler___spec__1(lean_object*, lean_object*);
 LEAN_EXPORT lean_object* l_Lean_throwInterruptException___at_Lean_addDecl_addAsAxiom___spec__4___rarg(lean_object*);
 lean_object* l___private_Init_Util_0__mkPanicMessageWithDecl(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 static lean_object* l_Lean_initFn____x40_Lean_AddDecl___hyg_242____closed__4;
-LEAN_EXPORT lean_object* l_Lean_logWarning___at_Lean_addDecl_doAdd___spec__1___boxed(lean_object*, lean_object*, lean_object*, lean_object*);
 static lean_object* l_List_forIn_x27_loop___at_Lean_addDecl_addSynchronously___spec__3___closed__2;
 lean_object* lean_task_get_own(lean_object*);
 lean_object* l_Lean_Declaration_getTopLevelNames(lean_object*);
 static lean_object* l_List_forIn_x27_loop___at_Lean_addDecl_addSynchronously___spec__3___closed__4;
 LEAN_EXPORT lean_object* l_Lean_Environment_addDecl(lean_object*, lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT uint8_t l___private_Lean_AddDecl_0__Lean_isNamespaceName(lean_object*);
-LEAN_EXPORT lean_object* l_Lean_logWarning___at_Lean_addDecl_doAdd___spec__1(lean_object*, lean_object*, lean_object*, lean_object*);
 lean_object* l_Lean_Core_wrapAsyncAsSnapshot___rarg(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 static lean_object* l_List_forIn_x27_loop___at_Lean_addDecl_addAsAxiom___spec__5___closed__9;
 static lean_object* l_List_forIn_x27_loop___at_Lean_addDecl_addSynchronously___spec__3___closed__3;
@@ -144,7 +141,6 @@ static lean_object* l_List_forIn_x27_loop___at_Lean_addDecl_addSynchronously___s
 static lean_object* l_Lean_addDecl_addAsAxiom___lambda__1___closed__1;
 LEAN_EXPORT lean_object* l_Lean_wasOriginallyTheorem___boxed(lean_object*, lean_object*);
 static lean_object* l_Lean_throwInterruptException___at_Lean_addDecl_addAsAxiom___spec__4___rarg___closed__1;
-uint8_t l_Lean_beqDefinitionSafety____x40_Lean_Declaration___hyg_666_(uint8_t, uint8_t);
 LEAN_EXPORT lean_object* l_Lean_getOriginalConstKind_x3f(lean_object*, lean_object*);
 LEAN_EXPORT lean_object* l_Lean_addDecl___lambda__4___boxed(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 static lean_object* l_Lean_initFn____x40_Lean_AddDecl___hyg_242____closed__9;
@@ -1736,39 +1732,6 @@ lean_dec(x_3);
 return x_5;
 }
 }
-static lean_object* _init_l_Lean_logWarning___at_Lean_addDecl_doAdd___spec__1___closed__1() {
-_start:
-{
-lean_object* x_1; 
-x_1 = l_Lean_warningAsError;
-return x_1;
-}
-}
-LEAN_EXPORT lean_object* l_Lean_logWarning___at_Lean_addDecl_doAdd___spec__1(lean_object* x_1, lean_object* x_2, lean_object* x_3, lean_object* x_4) {
-_start:
-{
-lean_object* x_5; lean_object* x_6; uint8_t x_7; 
-x_5 = lean_ctor_get(x_2, 2);
-lean_inc(x_5);
-x_6 = l_Lean_logWarning___at_Lean_addDecl_doAdd___spec__1___closed__1;
-x_7 = l_Lean_Option_get___at___private_Lean_Util_Profile_0__Lean_get__profiler___spec__1(x_5, x_6);
-lean_dec(x_5);
-if (x_7 == 0)
-{
-uint8_t x_8; lean_object* x_9; 
-x_8 = 1;
-x_9 = l_Lean_log___at_Lean_Core_wrapAsyncAsSnapshot___spec__13(x_1, x_8, x_2, x_3, x_4);
-return x_9;
-}
-else
-{
-uint8_t x_10; lean_object* x_11; 
-x_10 = 2;
-x_11 = l_Lean_log___at_Lean_Core_wrapAsyncAsSnapshot___spec__13(x_1, x_10, x_2, x_3, x_4);
-return x_11;
-}
-}
-}
 static lean_object* _init_l_Lean_addDecl_doAdd___lambda__1___closed__1() {
 _start:
 {
@@ -2110,26 +2073,27 @@ return x_13;
 }
 else
 {
-lean_object* x_14; lean_object* x_15; lean_object* x_16; lean_object* x_17; lean_object* x_18; 
+lean_object* x_14; uint8_t x_15; lean_object* x_16; lean_object* x_17; lean_object* x_18; lean_object* x_19; 
 x_14 = l_Lean_addDecl_doAdd___lambda__3___closed__5;
+x_15 = 1;
 lean_inc(x_2);
-x_15 = l_Lean_logWarning___at_Lean_addDecl_doAdd___spec__1(x_14, x_2, x_3, x_7);
-x_16 = lean_ctor_get(x_15, 0);
-lean_inc(x_16);
-x_17 = lean_ctor_get(x_15, 1);
+x_16 = l_Lean_log___at_Lean_Core_wrapAsyncAsSnapshot___spec__13(x_14, x_15, x_10, x_2, x_3, x_7);
+x_17 = lean_ctor_get(x_16, 0);
 lean_inc(x_17);
-lean_dec(x_15);
-x_18 = l_Lean_addDecl_doAdd___lambda__2(x_1, x_16, x_2, x_3, x_17);
+x_18 = lean_ctor_get(x_16, 1);
+lean_inc(x_18);
 lean_dec(x_16);
-return x_18;
+x_19 = l_Lean_addDecl_doAdd___lambda__2(x_1, x_17, x_2, x_3, x_18);
+lean_dec(x_17);
+return x_19;
 }
 }
 else
 {
-lean_object* x_19; lean_object* x_20; 
-x_19 = lean_box(0);
-x_20 = l_Lean_addDecl_doAdd___lambda__2(x_1, x_19, x_2, x_3, x_7);
-return x_20;
+lean_object* x_20; lean_object* x_21; 
+x_20 = lean_box(0);
+x_21 = l_Lean_addDecl_doAdd___lambda__2(x_1, x_20, x_2, x_3, x_7);
+return x_21;
 }
 }
 }
@@ -2185,15 +2149,6 @@ x_14 = lean_box(0);
 x_15 = l_Lean_profileitM___at_Lean_traceBlock___spec__1___rarg(x_13, x_5, x_12, x_14, x_2, x_3, x_4);
 lean_dec(x_5);
 return x_15;
-}
-}
-LEAN_EXPORT lean_object* l_Lean_logWarning___at_Lean_addDecl_doAdd___spec__1___boxed(lean_object* x_1, lean_object* x_2, lean_object* x_3, lean_object* x_4) {
-_start:
-{
-lean_object* x_5; 
-x_5 = l_Lean_logWarning___at_Lean_addDecl_doAdd___spec__1(x_1, x_2, x_3, x_4);
-lean_dec(x_3);
-return x_5;
 }
 }
 LEAN_EXPORT lean_object* l_Lean_addDecl_doAdd___lambda__1___boxed(lean_object* x_1, lean_object* x_2, lean_object* x_3, lean_object* x_4, lean_object* x_5) {
@@ -4297,7 +4252,7 @@ x_33 = lean_ctor_get(x_19, 0);
 lean_inc(x_33);
 x_34 = lean_ctor_get_uint8(x_19, sizeof(void*)*4);
 x_35 = 0;
-x_36 = l_Lean_beqDefinitionSafety____x40_Lean_Declaration___hyg_666_(x_34, x_35);
+x_36 = l_Lean_beqDefinitionSafety____x40_Lean_Declaration___hyg_685_(x_34, x_35);
 x_37 = lean_alloc_ctor(0, 1, 1);
 lean_ctor_set(x_37, 0, x_33);
 lean_ctor_set_uint8(x_37, sizeof(void*)*1, x_36);
@@ -4367,7 +4322,7 @@ x_57 = lean_ctor_get(x_43, 0);
 lean_inc(x_57);
 x_58 = lean_ctor_get_uint8(x_43, sizeof(void*)*4);
 x_59 = 0;
-x_60 = l_Lean_beqDefinitionSafety____x40_Lean_Declaration___hyg_666_(x_58, x_59);
+x_60 = l_Lean_beqDefinitionSafety____x40_Lean_Declaration___hyg_685_(x_58, x_59);
 x_61 = lean_alloc_ctor(0, 1, 1);
 lean_ctor_set(x_61, 0, x_57);
 lean_ctor_set_uint8(x_61, sizeof(void*)*1, x_60);
@@ -4763,7 +4718,7 @@ x_174 = lean_ctor_get(x_160, 0);
 lean_inc(x_174);
 x_175 = lean_ctor_get_uint8(x_160, sizeof(void*)*4);
 x_176 = 0;
-x_177 = l_Lean_beqDefinitionSafety____x40_Lean_Declaration___hyg_666_(x_175, x_176);
+x_177 = l_Lean_beqDefinitionSafety____x40_Lean_Declaration___hyg_685_(x_175, x_176);
 x_178 = lean_alloc_ctor(0, 1, 1);
 lean_ctor_set(x_178, 0, x_174);
 lean_ctor_set_uint8(x_178, sizeof(void*)*1, x_177);
@@ -4834,7 +4789,7 @@ x_198 = lean_ctor_get(x_184, 0);
 lean_inc(x_198);
 x_199 = lean_ctor_get_uint8(x_184, sizeof(void*)*4);
 x_200 = 0;
-x_201 = l_Lean_beqDefinitionSafety____x40_Lean_Declaration___hyg_666_(x_199, x_200);
+x_201 = l_Lean_beqDefinitionSafety____x40_Lean_Declaration___hyg_685_(x_199, x_200);
 x_202 = lean_alloc_ctor(0, 1, 1);
 lean_ctor_set(x_202, 0, x_198);
 lean_ctor_set_uint8(x_202, sizeof(void*)*1, x_201);
@@ -5371,8 +5326,6 @@ l_List_forIn_x27_loop___at_Lean_addDecl_addAsAxiom___spec__5___closed__14 = _ini
 lean_mark_persistent(l_List_forIn_x27_loop___at_Lean_addDecl_addAsAxiom___spec__5___closed__14);
 l_Lean_addDecl_addAsAxiom___lambda__1___closed__1 = _init_l_Lean_addDecl_addAsAxiom___lambda__1___closed__1();
 lean_mark_persistent(l_Lean_addDecl_addAsAxiom___lambda__1___closed__1);
-l_Lean_logWarning___at_Lean_addDecl_doAdd___spec__1___closed__1 = _init_l_Lean_logWarning___at_Lean_addDecl_doAdd___spec__1___closed__1();
-lean_mark_persistent(l_Lean_logWarning___at_Lean_addDecl_doAdd___spec__1___closed__1);
 l_Lean_addDecl_doAdd___lambda__1___closed__1 = _init_l_Lean_addDecl_doAdd___lambda__1___closed__1();
 lean_mark_persistent(l_Lean_addDecl_doAdd___lambda__1___closed__1);
 l_Lean_addDecl_doAdd___lambda__1___closed__2 = _init_l_Lean_addDecl_doAdd___lambda__1___closed__2();
