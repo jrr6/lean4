@@ -183,5 +183,3 @@ def _root_.Lean.MessageData.hint (hint : MessageData) (suggestions? : Option Sug
   if let some suggestions := suggestions? then
     hintMsg := hintMsg ++ (← suggestions.toHintMessage)
   return .tagged `hint hintMsg
-run_meta do
-  logInfo m!"foo\nbar"
