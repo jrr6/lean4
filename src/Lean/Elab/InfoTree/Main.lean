@@ -171,7 +171,7 @@ def OptionInfo.format (ctx : ContextInfo) (info : OptionInfo) : IO Format := do
   return f!"option {info.optionName} @ {formatStxRange ctx info.stx}"
 
 def ErrorNameInfo.format (ctx : ContextInfo) (info : ErrorNameInfo) : IO Format := do
-  return f!"error {info.errorName} @ {formatStxRange ctx info.stx}"
+  return f!"error name {info.errorName} @ {formatStxRange ctx info.stx}"
 
 def FieldInfo.format (ctx : ContextInfo) (info : FieldInfo) : IO Format := do
   ctx.runMetaM info.lctx do
