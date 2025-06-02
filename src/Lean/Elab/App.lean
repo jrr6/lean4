@@ -14,7 +14,6 @@ import Lean.Elab.Binders
 import Lean.Elab.SyntheticMVars
 import Lean.Elab.Arg
 import Lean.Elab.RecAppSyntax
-import Lean.PrettyPrinter
 
 namespace Lean.Elab.Term
 open Meta
@@ -1599,7 +1598,7 @@ where
 private partial def resolveDotName (id : Syntax) (expectedType? : Option Expr) : TermElabM Expr := do
   tryPostponeIfNoneOrMVar expectedType?
   let some expectedType := expectedType?
-    | throwError "Invalid dotted identifier notation: Cannot infer full name of `{id}` because its expected type is unknown"
+    | throwError "Invalid dotted identifier notation: Could not determine the expected type of `.{id}`"
   withForallBody expectedType fun resultType => do
     go resultType expectedType #[]
 where
@@ -1624,16 +1623,16 @@ where
         else if let some (fvar, []) ← resolveLocalName idNew then
           return fvar
         else
-          throwUnknownIdentifierAt id <| m!"Invalid dotted identifier notation: `{idNew}` does not exist"
-            ++ .note m!"Inferred this identifier from the term's expected type{indentExpr expectedType}"
+          throwUnknownIdentifierAt id <| m!"Unknown identifier `{idNew}`"
+            ++ .note m!"Inferred this identifier from the expected type of `.{id}`:{indentExpr expectedType}"
       | .sort .. =>
-        throwError "Invalid dotted identifier notation: not supported on type{indentExpr resultTypeFn}"
+        throwError "Invalid dotted identifier notation: Not supported on type universe{indentExpr resultTypeFn}"
       | _ =>
-          if (← isMVarApp expectedType) then
-            throwError "Invalid dotted identifier notation: Cannot infer full name of `{id}` because its expected type is a metavariable:{indentExpr expectedType}"
-          else
-            -- TODO: a bit wordy
-            throwError "Invalid dotted identifier notation: Cannot infer full name of `{id}` because its expected type{indentExpr expectedType}\nis not of the form (... → C ...) where C is a constant"
+        if expectedType.getAppFn.isMVar then
+          throwError "Invalid dotted identifier notation: The expected type of `.{id}` is a metavariable:{indentExpr expectedType}"
+        else
+          throwError "Invalid dotted identifier notation: The expected type of `.{id}`{indentExpr expectedType}\n\
+            is not of the form `C ...` or `... → C ...` where C is a constant"
     catch
       | ex@(.error ..) =>
         match (← unfoldDefinition? resultType) with
