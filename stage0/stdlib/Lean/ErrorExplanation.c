@@ -184,6 +184,7 @@ static lean_object* l___private_Lean_ErrorExplanation_0__Lean_ErrorExplanation_f
 LEAN_EXPORT lean_object* l_Lean_Json_getObjValAs_x3f___at___private_Lean_ErrorExplanation_0__Lean_ErrorExplanation_fromJsonMetadata____x40_Lean_ErrorExplanation___hyg_53____spec__1(lean_object*, lean_object*);
 LEAN_EXPORT lean_object* l___private_Lean_ErrorExplanation_0__Lean_compareNamedExplanations___boxed(lean_object*, lean_object*);
 LEAN_EXPORT lean_object* l_Array_forIn_x27Unsafe_loop___at_Lean_ErrorExplanation_CodeInfo_parse_infoString___spec__2(lean_object*, lean_object*, lean_object*, size_t, size_t, lean_object*, lean_object*);
+LEAN_EXPORT lean_object* l_Lean_getErrorExplanationRaw_x3f___boxed(lean_object*, lean_object*);
 static lean_object* l_Array_Array_repr___at___private_Lean_ErrorExplanation_0__Lean_ErrorExplanation_reprCodeBlockSet____x40_Lean_ErrorExplanation___hyg_365____spec__1___closed__11;
 static lean_object* l_Option_repr___at___private_Lean_ErrorExplanation_0__Lean_ErrorExplanation_reprCodeInfo____x40_Lean_ErrorExplanation___hyg_704____spec__1___closed__4;
 LEAN_EXPORT lean_object* l_Lean_Json_getObjValAs_x3f___at___private_Lean_ErrorExplanation_0__Lean_ErrorExplanation_fromJsonMetadata____x40_Lean_ErrorExplanation___hyg_53____spec__1___boxed(lean_object*, lean_object*);
@@ -335,6 +336,7 @@ LEAN_EXPORT lean_object* l_Lean_hasErrorExplanation___rarg___lambda__1(lean_obje
 LEAN_EXPORT lean_object* l___private_Lean_ErrorExplanation_0__Lean_ErrorExplanation_parseExplanation_codeBlock___lambda__2(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 static lean_object* l_Array_forIn_x27Unsafe_loop___at_Lean_ErrorExplanation_CodeInfo_parse_infoString___spec__2___closed__8;
 lean_object* l_Std_Format_joinSep___at_Prod_repr___spec__1(lean_object*, lean_object*);
+LEAN_EXPORT lean_object* l_Lean_getErrorExplanationRaw_x3f(lean_object*, lean_object*);
 LEAN_EXPORT lean_object* l_Lean_ErrorExplanation_instReprValidationState;
 LEAN_EXPORT lean_object* l___private_Lean_ErrorExplanation_0__Lean_ErrorExplanation_ValidationM_run___rarg(lean_object*, lean_object*);
 static lean_object* l_Lean_ErrorExplanation_CodeInfo_parse_namedAttr___closed__3;
@@ -10765,6 +10767,32 @@ lean_object* x_6;
 x_6 = l_Lean_getErrorExplanation_x3f___rarg___lambda__3(x_1, x_2, x_3, x_4, x_5);
 lean_dec(x_1);
 return x_6;
+}
+}
+LEAN_EXPORT lean_object* l_Lean_getErrorExplanationRaw_x3f(lean_object* x_1, lean_object* x_2) {
+_start:
+{
+lean_object* x_3; lean_object* x_4; lean_object* x_5; uint8_t x_6; lean_object* x_7; lean_object* x_8; lean_object* x_9; 
+x_3 = lean_box(0);
+x_4 = l_Lean_errorExplanationExt;
+x_5 = lean_ctor_get(x_4, 0);
+lean_inc(x_5);
+x_6 = lean_ctor_get_uint8(x_5, sizeof(void*)*3);
+lean_dec(x_5);
+x_7 = l_Lean_getErrorExplanation_x3f___rarg___lambda__3___closed__1;
+x_8 = l_Lean_SimplePersistentEnvExtension_getState___rarg(x_3, x_7, x_1, x_6);
+x_9 = l_Lean_RBNode_find___at_Lean_NameMap_find_x3f___spec__1___rarg(x_8, x_2);
+lean_dec(x_8);
+return x_9;
+}
+}
+LEAN_EXPORT lean_object* l_Lean_getErrorExplanationRaw_x3f___boxed(lean_object* x_1, lean_object* x_2) {
+_start:
+{
+lean_object* x_3; 
+x_3 = l_Lean_getErrorExplanationRaw_x3f(x_1, x_2);
+lean_dec(x_2);
+return x_3;
 }
 }
 LEAN_EXPORT lean_object* l_Lean_hasErrorExplanation___rarg___lambda__1(lean_object* x_1, lean_object* x_2, lean_object* x_3) {

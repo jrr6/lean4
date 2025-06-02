@@ -265,6 +265,7 @@ lean_object* l_Lean_Server_findModuleRefs(lean_object*, lean_object*, uint8_t, u
 LEAN_EXPORT lean_object* l_Lean_Server_FileWorker_handleDidChange___boxed(lean_object*, lean_object*, lean_object*, lean_object*);
 lean_object* l_List_appendTR___rarg(lean_object*, lean_object*);
 lean_object* l_Lean_Json_getObjValAs_x3f___at_Lean_Lsp_instFromJsonInitializeParams___spec__2(lean_object*, lean_object*);
+lean_object* l___private_Lean_Server_FileWorker_WidgetRequests_0__Lean_Widget_fromJsonGetInteractiveDiagnosticsParams____x40_Lean_Server_FileWorker_WidgetRequests___hyg_1685_(lean_object*);
 lean_object* lean_io_promise_resolve(lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* l_Lean_Server_FileWorker_WorkerContext_modifyPartialHandler(lean_object*, lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* l_Lean_Server_FileWorker_handlePostRequestSpecialCases___lambda__1(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
@@ -372,7 +373,6 @@ lean_object* lean_array_pop(lean_object*);
 static lean_object* l_IO_FS_Stream_readRequestAs___at_Lean_Server_FileWorker_initAndRunWorker___spec__2___closed__15;
 LEAN_EXPORT lean_object* l___private_Lean_Server_FileWorker_0__Lean_Server_FileWorker_reportSnapshots___lambda__5(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* l_Array_mapMUnsafe_map___at___private_Lean_Server_FileWorker_0__Lean_Server_FileWorker_reportSnapshots_handleTasks___spec__2___boxed(lean_object*, lean_object*, lean_object*);
-lean_object* l___private_Lean_Server_FileWorker_WidgetRequests_0__Lean_Widget_fromJsonGetInteractiveDiagnosticsParams____x40_Lean_Server_FileWorker_WidgetRequests___hyg_1684_(lean_object*);
 static lean_object* l_Lean_Server_FileWorker_initializeWorker___closed__1;
 lean_object* l_Lean_FileMap_ofString(lean_object*);
 lean_object* lean_st_mk_ref(lean_object*, lean_object*);
@@ -34060,7 +34060,7 @@ _start:
 {
 lean_object* x_2; 
 lean_inc(x_1);
-x_2 = l___private_Lean_Server_FileWorker_WidgetRequests_0__Lean_Widget_fromJsonGetInteractiveDiagnosticsParams____x40_Lean_Server_FileWorker_WidgetRequests___hyg_1684_(x_1);
+x_2 = l___private_Lean_Server_FileWorker_WidgetRequests_0__Lean_Widget_fromJsonGetInteractiveDiagnosticsParams____x40_Lean_Server_FileWorker_WidgetRequests___hyg_1685_(x_1);
 if (lean_obj_tag(x_2) == 0)
 {
 uint8_t x_3; 

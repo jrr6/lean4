@@ -837,7 +837,7 @@ return x_30;
 LEAN_EXPORT lean_object* l_Lean_Server_Completion_findCompletionInfosAt_go(lean_object* x_1, lean_object* x_2, lean_object* x_3, lean_object* x_4, lean_object* x_5, lean_object* x_6) {
 _start:
 {
-if (lean_obj_tag(x_5) == 7)
+if (lean_obj_tag(x_5) == 8)
 {
 lean_object* x_7; uint8_t x_8; 
 x_7 = lean_ctor_get(x_5, 0);
@@ -2091,7 +2091,7 @@ x_5 = lean_ctor_get(x_3, 2);
 lean_inc(x_5);
 lean_dec(x_3);
 lean_inc(x_5);
-x_6 = lean_alloc_ctor(7, 1, 0);
+x_6 = lean_alloc_ctor(8, 1, 0);
 lean_ctor_set(x_6, 0, x_5);
 x_7 = l_Lean_Elab_Info_size_x3f(x_6);
 lean_dec(x_6);
@@ -2126,7 +2126,7 @@ x_13 = lean_ctor_get(x_12, 2);
 lean_inc(x_13);
 lean_dec(x_12);
 lean_inc(x_13);
-x_14 = lean_alloc_ctor(7, 1, 0);
+x_14 = lean_alloc_ctor(8, 1, 0);
 lean_ctor_set(x_14, 0, x_13);
 x_15 = l_Lean_Elab_Info_size_x3f(x_14);
 lean_dec(x_14);

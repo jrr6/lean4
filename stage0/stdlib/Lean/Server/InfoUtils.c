@@ -8531,7 +8531,7 @@ return x_3;
 LEAN_EXPORT uint8_t l_Lean_Elab_Info_isCompletion(lean_object* x_1) {
 _start:
 {
-if (lean_obj_tag(x_1) == 7)
+if (lean_obj_tag(x_1) == 8)
 {
 uint8_t x_2; 
 x_2 = 1;
@@ -8558,7 +8558,7 @@ return x_3;
 LEAN_EXPORT lean_object* l_Lean_Elab_InfoTree_getCompletionInfos___lambda__1(lean_object* x_1, lean_object* x_2, lean_object* x_3) {
 _start:
 {
-if (lean_obj_tag(x_2) == 7)
+if (lean_obj_tag(x_2) == 8)
 {
 lean_object* x_4; lean_object* x_5; lean_object* x_6; 
 x_4 = lean_ctor_get(x_2, 0);
@@ -8646,7 +8646,7 @@ case 6:
 {
 lean_object* x_13; lean_object* x_14; 
 x_13 = lean_ctor_get(x_1, 0);
-x_14 = lean_ctor_get(x_13, 4);
+x_14 = lean_ctor_get(x_13, 0);
 lean_inc(x_14);
 return x_14;
 }
@@ -8654,47 +8654,55 @@ case 7:
 {
 lean_object* x_15; lean_object* x_16; 
 x_15 = lean_ctor_get(x_1, 0);
-x_16 = l_Lean_Elab_CompletionInfo_stx(x_15);
+x_16 = lean_ctor_get(x_15, 4);
+lean_inc(x_16);
 return x_16;
 }
-case 9:
+case 8:
 {
 lean_object* x_17; lean_object* x_18; 
 x_17 = lean_ctor_get(x_1, 0);
-x_18 = lean_ctor_get(x_17, 0);
-lean_inc(x_18);
+x_18 = l_Lean_Elab_CompletionInfo_stx(x_17);
 return x_18;
 }
 case 10:
 {
-lean_object* x_19; 
-x_19 = lean_box(0);
-return x_19;
-}
-case 11:
-{
-lean_object* x_20; 
-x_20 = lean_ctor_get(x_1, 0);
+lean_object* x_19; lean_object* x_20; 
+x_19 = lean_ctor_get(x_1, 0);
+x_20 = lean_ctor_get(x_19, 0);
 lean_inc(x_20);
 return x_20;
 }
+case 11:
+{
+lean_object* x_21; 
+x_21 = lean_box(0);
+return x_21;
+}
 case 12:
 {
-lean_object* x_21; lean_object* x_22; lean_object* x_23; lean_object* x_24; 
-x_21 = lean_ctor_get(x_1, 0);
-x_22 = lean_ctor_get(x_21, 0);
-x_23 = lean_ctor_get(x_22, 0);
-x_24 = lean_ctor_get(x_23, 1);
-lean_inc(x_24);
-return x_24;
+lean_object* x_22; 
+x_22 = lean_ctor_get(x_1, 0);
+lean_inc(x_22);
+return x_22;
 }
-default: 
+case 13:
 {
-lean_object* x_25; lean_object* x_26; 
-x_25 = lean_ctor_get(x_1, 0);
+lean_object* x_23; lean_object* x_24; lean_object* x_25; lean_object* x_26; 
+x_23 = lean_ctor_get(x_1, 0);
+x_24 = lean_ctor_get(x_23, 0);
+x_25 = lean_ctor_get(x_24, 0);
 x_26 = lean_ctor_get(x_25, 1);
 lean_inc(x_26);
 return x_26;
+}
+default: 
+{
+lean_object* x_27; lean_object* x_28; 
+x_27 = lean_ctor_get(x_1, 0);
+x_28 = lean_ctor_get(x_27, 1);
+lean_inc(x_28);
+return x_28;
 }
 }
 }
@@ -8728,7 +8736,7 @@ x_5 = lean_ctor_get(x_4, 0);
 lean_inc(x_5);
 return x_5;
 }
-case 6:
+case 7:
 {
 lean_object* x_6; lean_object* x_7; 
 x_6 = lean_ctor_get(x_1, 0);
@@ -8736,14 +8744,14 @@ x_7 = lean_ctor_get(x_6, 2);
 lean_inc(x_7);
 return x_7;
 }
-case 7:
+case 8:
 {
 lean_object* x_8; lean_object* x_9; 
 x_8 = lean_ctor_get(x_1, 0);
 x_9 = l_Lean_Elab_CompletionInfo_lctx(x_8);
 return x_9;
 }
-case 12:
+case 13:
 {
 lean_object* x_10; lean_object* x_11; lean_object* x_12; 
 x_10 = lean_ctor_get(x_1, 0);
@@ -10827,7 +10835,7 @@ x_20 = lean_box(0);
 x_15 = x_20;
 goto block_19;
 }
-case 6:
+case 7:
 {
 lean_object* x_21; 
 x_21 = lean_box(0);
@@ -11678,7 +11686,7 @@ return x_31;
 }
 }
 }
-case 6:
+case 7:
 {
 uint8_t x_32; 
 x_32 = !lean_is_exclusive(x_1);
@@ -11805,7 +11813,7 @@ return x_56;
 }
 }
 }
-case 12:
+case 13:
 {
 uint8_t x_57; 
 x_57 = !lean_is_exclusive(x_1);
@@ -12327,7 +12335,7 @@ return x_43;
 }
 }
 }
-case 6:
+case 7:
 {
 lean_object* x_44; lean_object* x_45; lean_object* x_46; lean_object* x_47; lean_object* x_48; uint8_t x_49; lean_object* x_50; uint8_t x_51; 
 lean_dec(x_5);
@@ -12369,7 +12377,7 @@ lean_ctor_set(x_54, 1, x_53);
 return x_54;
 }
 }
-case 12:
+case 13:
 {
 lean_object* x_55; lean_object* x_56; lean_object* x_57; 
 x_55 = lean_ctor_get(x_1, 0);
@@ -13893,7 +13901,7 @@ return x_23;
 }
 }
 }
-case 6:
+case 7:
 {
 uint8_t x_24; 
 x_24 = !lean_is_exclusive(x_1);
