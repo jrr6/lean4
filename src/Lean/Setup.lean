@@ -21,7 +21,7 @@ structure Import where
   importAll : Bool := false
   /-- Whether to activate this import when the current module itself is imported. -/
   isExported    : Bool := true
-  deriving Repr, Inhabited, ToJson, FromJson
+  deriving Repr, Inhabited, ToJson, FromJson, BEq, Hashable
 
 instance : Coe Name Import := ⟨({module := ·})⟩
 
