@@ -7358,7 +7358,7 @@ lean_object* x_14; lean_object* x_15;
 x_14 = lean_ctor_get(x_12, 0);
 lean_inc(x_14);
 lean_dec(x_12);
-x_15 = lean_ctor_get(x_14, 3);
+x_15 = lean_ctor_get(x_14, 2);
 lean_inc(x_15);
 lean_dec(x_14);
 if (lean_obj_tag(x_15) == 0)
@@ -7528,7 +7528,7 @@ lean_object* x_64; lean_object* x_65;
 x_64 = lean_ctor_get(x_61, 0);
 lean_inc(x_64);
 lean_dec(x_61);
-x_65 = lean_ctor_get(x_64, 3);
+x_65 = lean_ctor_get(x_64, 2);
 lean_inc(x_65);
 lean_dec(x_64);
 if (lean_obj_tag(x_65) == 0)

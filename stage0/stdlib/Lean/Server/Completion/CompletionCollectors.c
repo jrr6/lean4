@@ -24671,7 +24671,7 @@ uint8_t x_6; lean_object* x_7; lean_object* x_8; lean_object* x_9; lean_object* 
 x_6 = 1;
 x_7 = l___private_Lean_Server_Completion_CompletionCollectors_0__Lean_Server_Completion_addUnresolvedCompletionItem___closed__1;
 x_8 = l_Lean_Name_toString(x_3, x_6, x_7);
-x_9 = lean_ctor_get(x_4, 2);
+x_9 = lean_ctor_get(x_4, 1);
 x_10 = lean_ctor_get(x_9, 0);
 x_11 = lean_ctor_get(x_9, 2);
 lean_inc(x_10);
