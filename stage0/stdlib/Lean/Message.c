@@ -86,6 +86,7 @@ static lean_object* l_Lean_MessageData_orList___closed__3;
 static lean_object* l___private_Lean_Message_0__Lean_fromJsonSerialMessage____x40_Lean_Message___hyg_4110____closed__22;
 static lean_object* l___private_Lean_Message_0__Lean_fromJsonMessageSeverity____x40_Lean_Message___hyg_242____closed__3;
 static lean_object* l_Lean_Kernel_Exception_toMessageData___closed__33;
+LEAN_EXPORT lean_object* l_Lean_MessageData_errorName_x3f(lean_object*);
 LEAN_EXPORT lean_object* l_Lean_MessageData_ofList(lean_object*);
 static lean_object* l_Lean_MessageData_arrayExpr_toMessageData___closed__3;
 lean_object* l_Lean_PersistentArray_push___rarg(lean_object*, lean_object*);
@@ -332,6 +333,7 @@ LEAN_EXPORT lean_object* l_Array_anyMUnsafe_any___at_Lean_MessageLog_hasErrors__
 static lean_object* l___private_Lean_Message_0__Lean_fromJsonSerialMessage____x40_Lean_Message___hyg_4110____closed__4;
 LEAN_EXPORT lean_object* l___private_Lean_Message_0__Lean_fromJsonMessageSeverity____x40_Lean_Message___hyg_242____lambda__1(lean_object*);
 LEAN_EXPORT uint8_t l_Lean_PersistentArray_anyMAux___at_Lean_MessageLog_hasErrors___spec__2(lean_object*);
+LEAN_EXPORT lean_object* l_Lean_MessageData_errorName_x3f___boxed(lean_object*);
 LEAN_EXPORT lean_object* l_Lean_instFromJsonBaseMessage(lean_object*);
 lean_object* l_Lean_ppConstNameWithInfos(lean_object*, lean_object*, lean_object*);
 static lean_object* l_Lean_Kernel_Exception_toMessageData___closed__12;
@@ -397,6 +399,7 @@ LEAN_EXPORT lean_object* l_Lean_MessageData_arrayExpr_toMessageData(lean_object*
 static lean_object* l_Lean_Kernel_Exception_toMessageData___closed__51;
 LEAN_EXPORT lean_object* l_Lean_instFromJsonMessageSeverity;
 static lean_object* l_Lean_Kernel_Exception_toMessageData___closed__25;
+LEAN_EXPORT lean_object* l_Lean_Message_errorName_x3f(lean_object*);
 lean_object* lean_usize_to_nat(size_t);
 LEAN_EXPORT lean_object* l_Lean___aux__Lean__Message______macroRules__Lean__termM_x21____1(lean_object*, lean_object*, lean_object*);
 static lean_object* l_Lean_Kernel_Exception_toMessageData___closed__44;
@@ -410,6 +413,7 @@ LEAN_EXPORT lean_object* l_Lean_MessageSeverity_toCtorIdx___boxed(lean_object*);
 LEAN_EXPORT lean_object* l_Lean_MessageLog_errorsToWarnings(lean_object*);
 static lean_object* l___private_Lean_Message_0__Lean_toJsonBaseMessage____x40_Lean_Message___hyg_3418____rarg___closed__6;
 static lean_object* l_Lean_MessageData_note___closed__1;
+LEAN_EXPORT lean_object* l_Lean_Message_errorName_x3f___boxed(lean_object*);
 static lean_object* l___private_Lean_Message_0__Lean_fromJsonBaseMessage____x40_Lean_Message___hyg_3572____rarg___closed__31;
 LEAN_EXPORT lean_object* l_Lean_MessageData_ofExpr(lean_object*);
 LEAN_EXPORT lean_object* l_Lean_instToMessageDataLevel;
@@ -9016,6 +9020,43 @@ _start:
 {
 lean_object* x_2; 
 x_2 = l_Lean_errorNameOfKind_x3f(x_1);
+lean_dec(x_1);
+return x_2;
+}
+}
+LEAN_EXPORT lean_object* l_Lean_MessageData_errorName_x3f(lean_object* x_1) {
+_start:
+{
+lean_object* x_2; lean_object* x_3; 
+x_2 = l_Lean_MessageData_kind(x_1);
+x_3 = l_Lean_errorNameOfKind_x3f(x_2);
+lean_dec(x_2);
+return x_3;
+}
+}
+LEAN_EXPORT lean_object* l_Lean_MessageData_errorName_x3f___boxed(lean_object* x_1) {
+_start:
+{
+lean_object* x_2; 
+x_2 = l_Lean_MessageData_errorName_x3f(x_1);
+lean_dec(x_1);
+return x_2;
+}
+}
+LEAN_EXPORT lean_object* l_Lean_Message_errorName_x3f(lean_object* x_1) {
+_start:
+{
+lean_object* x_2; lean_object* x_3; 
+x_2 = lean_ctor_get(x_1, 4);
+x_3 = l_Lean_MessageData_errorName_x3f(x_2);
+return x_3;
+}
+}
+LEAN_EXPORT lean_object* l_Lean_Message_errorName_x3f___boxed(lean_object* x_1) {
+_start:
+{
+lean_object* x_2; 
+x_2 = l_Lean_Message_errorName_x3f(x_1);
 lean_dec(x_1);
 return x_2;
 }
