@@ -5274,13 +5274,16 @@ if (x_9 == 0)
 lean_object* x_10; lean_object* x_11; 
 x_10 = lean_box(0);
 x_11 = l_Lean_Elab_ErrorExplanation_elabRegisterErrorExplanation___lambda__6(x_1, x_2, x_3, x_4, x_10, x_6, x_7, x_8);
+lean_dec(x_4);
 return x_11;
 }
 else
 {
 lean_object* x_12; lean_object* x_13; lean_object* x_14; lean_object* x_15; lean_object* x_16; lean_object* x_17; uint8_t x_18; 
+lean_dec(x_3);
 lean_dec(x_2);
-x_12 = l_Lean_MessageData_ofName(x_3);
+lean_inc(x_4);
+x_12 = l_Lean_MessageData_ofSyntax(x_4);
 x_13 = l_Lean_Elab_ErrorExplanation_elabRegisterErrorExplanation___lambda__6___closed__2;
 x_14 = lean_alloc_ctor(7, 2, 0);
 lean_ctor_set(x_14, 0, x_13);
@@ -5290,6 +5293,7 @@ x_16 = lean_alloc_ctor(7, 2, 0);
 lean_ctor_set(x_16, 0, x_14);
 lean_ctor_set(x_16, 1, x_15);
 x_17 = l_Lean_throwErrorAt___at_Lean_Elab_ErrorExplanation_elabRegisterErrorExplanation___spec__6(x_4, x_16, x_6, x_7, x_8);
+lean_dec(x_4);
 x_18 = !lean_is_exclusive(x_17);
 if (x_18 == 0)
 {
@@ -5389,7 +5393,6 @@ if (x_14 == 0)
 lean_object* x_15; lean_object* x_16; 
 x_15 = lean_box(0);
 x_16 = l_Lean_Elab_ErrorExplanation_elabRegisterErrorExplanation___lambda__7(x_3, x_11, x_13, x_2, x_15, x_5, x_6, x_12);
-lean_dec(x_2);
 return x_16;
 }
 else
@@ -5880,7 +5883,6 @@ lean_object* x_9;
 x_9 = l_Lean_Elab_ErrorExplanation_elabRegisterErrorExplanation___lambda__7(x_1, x_2, x_3, x_4, x_5, x_6, x_7, x_8);
 lean_dec(x_7);
 lean_dec(x_5);
-lean_dec(x_4);
 lean_dec(x_1);
 return x_9;
 }
