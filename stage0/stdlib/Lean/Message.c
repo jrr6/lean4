@@ -229,6 +229,7 @@ LEAN_EXPORT lean_object* l_Lean_errorNameOfKind_x3f___boxed(lean_object*);
 lean_object* l_List_getLast_x21___rarg(lean_object*, lean_object*);
 lean_object* l_Lean_Syntax_copyHeadTailInfoFrom(lean_object*, lean_object*);
 lean_object* l_Lean_formatRawGoal(lean_object*);
+LEAN_EXPORT lean_object* l_Lean_MessageData_composePreservingKind(lean_object*, lean_object*);
 lean_object* l_Lean_ppLevel(lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* l_String_split___at_Lean_stringToMessageData___spec__1(lean_object*);
 LEAN_EXPORT lean_object* l_Lean_MessageData_formatAux___lambda__4___boxed(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
@@ -377,7 +378,6 @@ LEAN_EXPORT lean_object* l_Lean_instToMessageDataProd___rarg(lean_object*, lean_
 static lean_object* l_Lean_aquote___closed__3;
 LEAN_EXPORT lean_object* l_Lean_PersistentArray_foldlM___at_Lean_MessageLog_getInfoMessages___spec__1___boxed(lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* l_Lean_SerialMessage_toString(lean_object*, uint8_t);
-LEAN_EXPORT lean_object* l_Lean_MessageData_appendPreservingKind(lean_object*, lean_object*);
 static lean_object* l_Lean_MessageData_instCoeName___closed__1;
 static lean_object* l_Lean_aquote___closed__6;
 LEAN_EXPORT lean_object* l_Lean_addMessageContextFull___rarg___lambda__1(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
@@ -2038,7 +2038,7 @@ x_3 = lean_box(x_2);
 return x_3;
 }
 }
-LEAN_EXPORT lean_object* l_Lean_MessageData_appendPreservingKind(lean_object* x_1, lean_object* x_2) {
+LEAN_EXPORT lean_object* l_Lean_MessageData_composePreservingKind(lean_object* x_1, lean_object* x_2) {
 _start:
 {
 switch (lean_obj_tag(x_1)) {
@@ -2050,7 +2050,7 @@ if (x_3 == 0)
 {
 lean_object* x_4; lean_object* x_5; 
 x_4 = lean_ctor_get(x_1, 1);
-x_5 = l_Lean_MessageData_appendPreservingKind(x_4, x_2);
+x_5 = l_Lean_MessageData_composePreservingKind(x_4, x_2);
 lean_ctor_set(x_1, 1, x_5);
 return x_1;
 }
@@ -2062,7 +2062,7 @@ x_7 = lean_ctor_get(x_1, 1);
 lean_inc(x_7);
 lean_inc(x_6);
 lean_dec(x_1);
-x_8 = l_Lean_MessageData_appendPreservingKind(x_7, x_2);
+x_8 = l_Lean_MessageData_composePreservingKind(x_7, x_2);
 x_9 = lean_alloc_ctor(3, 2, 0);
 lean_ctor_set(x_9, 0, x_6);
 lean_ctor_set(x_9, 1, x_8);
@@ -2077,7 +2077,7 @@ if (x_10 == 0)
 {
 lean_object* x_11; lean_object* x_12; 
 x_11 = lean_ctor_get(x_1, 1);
-x_12 = l_Lean_MessageData_appendPreservingKind(x_11, x_2);
+x_12 = l_Lean_MessageData_composePreservingKind(x_11, x_2);
 lean_ctor_set(x_1, 1, x_12);
 return x_1;
 }
@@ -2089,7 +2089,7 @@ x_14 = lean_ctor_get(x_1, 1);
 lean_inc(x_14);
 lean_inc(x_13);
 lean_dec(x_1);
-x_15 = l_Lean_MessageData_appendPreservingKind(x_14, x_2);
+x_15 = l_Lean_MessageData_composePreservingKind(x_14, x_2);
 x_16 = lean_alloc_ctor(4, 2, 0);
 lean_ctor_set(x_16, 0, x_13);
 lean_ctor_set(x_16, 1, x_15);

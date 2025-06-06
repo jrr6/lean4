@@ -96,7 +96,6 @@ static lean_object* l_Std_Internal_Parsec_instInhabited___rarg___closed__1;
 LEAN_EXPORT lean_object* l_Std_Internal_Parsec_peekD___boxed(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 static lean_object* l_Std_Internal_Parsec_instMonad___closed__10;
 lean_object* l_Repr_addAppParen(lean_object*, lean_object*);
-LEAN_EXPORT lean_object* l_Std_Internal_Parsec_instInhabitedParseResult___rarg(lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* l_Std_Internal_Parsec_satisfy(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 lean_object* lean_array_mk(lean_object*);
 LEAN_EXPORT lean_object* l_Std_Internal_Parsec_orElse(lean_object*, lean_object*, lean_object*, lean_object*);
@@ -118,7 +117,6 @@ uint8_t lean_nat_dec_le(lean_object*, lean_object*);
 static lean_object* l_Std_Internal_Parsec_instMonad___closed__1;
 static lean_object* l_Std_Internal_Parsec_unexpectedEndOfInput___closed__1;
 static lean_object* l_Std_Internal_Parsec_instMonad___closed__8;
-LEAN_EXPORT lean_object* l_Std_Internal_Parsec_instInhabitedParseResult(lean_object*);
 LEAN_EXPORT lean_object* l_Std_Internal_Parsec_instMonad(lean_object*);
 LEAN_EXPORT lean_object* l_Std_Internal_Parsec_instMonad___lambda__5(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* l_Std_Internal_Parsec_bind(lean_object*, lean_object*, lean_object*);
@@ -461,24 +459,6 @@ _start:
 lean_object* x_3; 
 x_3 = lean_alloc_closure((void*)(l_Std_Internal_Parsec_instReprParseResult___rarg), 2, 0);
 return x_3;
-}
-}
-LEAN_EXPORT lean_object* l_Std_Internal_Parsec_instInhabitedParseResult___rarg(lean_object* x_1, lean_object* x_2, lean_object* x_3) {
-_start:
-{
-lean_object* x_4; 
-x_4 = lean_alloc_ctor(0, 2, 0);
-lean_ctor_set(x_4, 0, x_3);
-lean_ctor_set(x_4, 1, x_1);
-return x_4;
-}
-}
-LEAN_EXPORT lean_object* l_Std_Internal_Parsec_instInhabitedParseResult(lean_object* x_1) {
-_start:
-{
-lean_object* x_2; 
-x_2 = lean_alloc_closure((void*)(l_Std_Internal_Parsec_instInhabitedParseResult___rarg), 3, 0);
-return x_2;
 }
 }
 static lean_object* _init_l_Std_Internal_Parsec_instInhabited___rarg___closed__1() {
