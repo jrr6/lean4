@@ -83,6 +83,7 @@ static lean_object* l_Lean_Parser_Tactic_Doc_initFn____x40_Lean_Parser_Tactic_Do
 LEAN_EXPORT lean_object* l_Array_forIn_x27Unsafe_loop___at_Lean_Parser_Tactic_Doc_aliases___spec__3___rarg___lambda__1(lean_object*, lean_object*, lean_object*);
 uint8_t lean_usize_dec_eq(size_t, size_t);
 LEAN_EXPORT lean_object* l_Lean_Parser_Tactic_Doc_tacticDocsOnTactics___elambda__1___lambda__1___boxed(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
+uint8_t l_Lean_beqMessageSeverity____x40_Lean_Message___hyg_185_(uint8_t, uint8_t);
 extern lean_object* l_Lean_Parser_ParserExtension_instInhabitedState;
 LEAN_EXPORT lean_object* l_Lean_Parser_Tactic_Doc_initFn____x40_Lean_Parser_Tactic_Doc___hyg_810____lambda__2___boxed(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 static lean_object* l_Lean_Parser_Tactic_Doc_initFn____x40_Lean_Parser_Tactic_Doc___hyg_2525____closed__5;
@@ -267,7 +268,6 @@ LEAN_EXPORT lean_object* l_Lean_Parser_Tactic_Doc_getTacticExtensionString(lean_
 extern lean_object* l_Lean_warningAsError;
 LEAN_EXPORT lean_object* l_Array_foldlMUnsafe_fold___at_Lean_Parser_Tactic_Doc_isTactic___spec__4(lean_object*, lean_object*, lean_object*);
 uint8_t l_Lean_Option_get___at___private_Lean_Util_Profile_0__Lean_get__profiler___spec__1(lean_object*, lean_object*);
-uint8_t l_Lean_beqMessageSeverity____x40_Lean_Message___hyg_107_(uint8_t, uint8_t);
 static lean_object* l_Lean_logAt___at_Lean_Parser_Tactic_Doc_initFn____x40_Lean_Parser_Tactic_Doc___hyg_810____spec__1___closed__1;
 LEAN_EXPORT lean_object* l_Lean_Parser_Tactic_Doc_getTacticExtensionString_indentLine(lean_object*);
 lean_object* l_Lean_Syntax_getArg(lean_object*, lean_object*);
@@ -2402,7 +2402,7 @@ _start:
 {
 lean_object* x_8; uint8_t x_183; uint8_t x_184; 
 x_183 = 2;
-x_184 = l_Lean_beqMessageSeverity____x40_Lean_Message___hyg_107_(x_3, x_183);
+x_184 = l_Lean_beqMessageSeverity____x40_Lean_Message___hyg_185_(x_3, x_183);
 if (x_184 == 0)
 {
 lean_object* x_185; 
@@ -2443,7 +2443,7 @@ lean_dec(x_8);
 x_176 = lean_ctor_get(x_5, 2);
 lean_inc(x_176);
 x_177 = 1;
-x_178 = l_Lean_beqMessageSeverity____x40_Lean_Message___hyg_107_(x_3, x_177);
+x_178 = l_Lean_beqMessageSeverity____x40_Lean_Message___hyg_185_(x_3, x_177);
 if (x_178 == 0)
 {
 lean_dec(x_176);
