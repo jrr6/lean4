@@ -34,11 +34,6 @@ instance : ToString Arg where
     | .stx  val => toString val
     | .expr val => toString val
 
-instance : ToMessageData Arg where
-  toMessageData
-    | .stx  val => toMessageData val
-    | .expr val => toMessageData val
-
 instance : ToString NamedArg where
   toString s := "(" ++ toString s.name ++ " := " ++ toString s.val ++ ")"
 
@@ -1261,7 +1256,7 @@ private partial def findMethod? (structName fieldName : Name) : MetaM (Option (N
     | [fullName'] => return some (structName', fullName')
     | _ =>
       let candidates := MessageData.joinSep (candidates.map (m!"`{.ofConstName ·}`")) ", "
-      throwError "Field name `{fieldName}` is ambiguous: It has possible interpretations {candidates}"
+      throwError "Field name `{fieldName}` is ambiguous: `{fullName}` has possible interpretations {candidates}"
   -- Optimization: the first element of the resolution order is `structName`,
   -- so we can skip computing the resolution order in the common case
   -- of the name resolving in the `structName` namespace.
@@ -1273,7 +1268,7 @@ private partial def findMethod? (structName fieldName : Name) : MetaM (Option (N
     return none
 
 private def throwInvalidFieldNotation (e eType : Expr) : TermElabM α :=
-  throwLValError e eType "invalid field notation, type is not of the form (C ...) where C is a constant"
+  throwLValError e eType "Invalid field notation: Type is not of the form (C ...) where C is a constant"
 
 private def resolveLValAux (e : Expr) (eType : Expr) (lval : LVal) : TermElabM LValResolution := do
   if eType.isForall then
@@ -1288,7 +1283,7 @@ private def resolveLValAux (e : Expr) (eType : Expr) (lval : LVal) : TermElabM L
       match lval with
       |  .fieldName _ fieldName _ _ => toString fieldName
       | .fieldIdx _ i => toString i
-    throwError "Invalid field notation: type of{indentExpr e}\nis not known; cannot resolve field '{field}'"
+    throwError "Invalid field notation: Type of{indentExpr e}\nis not known; cannot resolve field `{field}`"
   match eType.getAppFn.constName?, lval with
   | some structName, LVal.fieldIdx _ idx =>
     if idx == 0 then
