@@ -1,6 +1,6 @@
-emptyTypeAscription.lean:3:19-3:24: error: invalid dotted identifier notation, expected type is not of the form (... → C ...) where C is a constant
+emptyTypeAscription.lean:3:19-3:24: error: Invalid dotted identifier notation: The expected type of `.zero` is a metavariable:
   ?m
-emptyTypeAscription.lean:4:29-4:34: error: invalid dotted identifier notation, expected type is not of the form (... → C ...) where C is a constant
+emptyTypeAscription.lean:4:29-4:34: error: Invalid dotted identifier notation: The expected type of `.zero` is a metavariable:
   ?m
 emptyTypeAscription.lean:9:63-9:70: error: invalid `▸` notation, expected result type of cast is 
   w = add x y

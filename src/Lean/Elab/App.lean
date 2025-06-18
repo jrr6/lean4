@@ -237,7 +237,7 @@ private def synthesizePendingAndNormalizeFunType : M Unit := do
         if let some (arg : Arg) := s.args[0]? then
           .note m!"Expected a function because this term is being applied to the argument\
             {indentD <| toMessageData arg}"
-        else m!""
+        else .nil
       throwError "Function expected at{indentExpr s.f}\nbut this term has type{indentExpr fType}{extra}"
 
 /-- Normalize and return the function type. -/
@@ -1268,22 +1268,30 @@ private partial def findMethod? (structName fieldName : Name) : MetaM (Option (N
     return none
 
 private def throwInvalidFieldNotation (e eType : Expr) : TermElabM α :=
-  throwLValError e eType "Invalid field notation: Type is not of the form (C ...) where C is a constant"
+  throwLValError e eType "Invalid field notation: Type is not of the form `C ...` where C is a constant"
 
 private def resolveLValAux (e : Expr) (eType : Expr) (lval : LVal) : TermElabM LValResolution := do
   if eType.isForall then
     match lval with
-    | LVal.fieldName _ fieldName _ _ =>
+    | LVal.fieldName _ fieldName suffix? fullRef =>
       let fullName := Name.str `Function fieldName
       if (← getEnv).contains fullName then
         return LValResolution.const `Function `Function fullName
-    | _ => pure ()
+      else if suffix?.isNone then
+        /- If there's no suffix, this could only have been a field in the `Function` namespace, so
+           we needn't wait to check if this is actually a constant. If `suffix?` is non-`none`, we
+           prefer to throw the "unknown constant" error (because of monad namespaces like `IO` and
+           auxiliary declarations like `mutual_induct`) -/
+        throwLValErrorAt fullRef e eType <| mkUnknownIdentifierMessage m!"Invalid field `{fieldName}`: \
+          The environment does not contain `{Name.str `Function fieldName}`"
+    | .fieldIdx .. =>
+      throwLValError e eType "Invalid projection: Projections cannot be used on functions"
   else if eType.getAppFn.isMVar then
-    let field :=
+    let (kind, name) :=
       match lval with
-      |  .fieldName _ fieldName _ _ => toString fieldName
-      | .fieldIdx _ i => toString i
-    throwError "Invalid field notation: Type of{indentExpr e}\nis not known; cannot resolve field `{field}`"
+      |  .fieldName _ fieldName _ _ => (m!"field notation", m!"field `{fieldName}`")
+      | .fieldIdx _ i => (m!"projection", m!"projection `{i}`")
+    throwError "Invalid {kind}: Type of{indentExpr e}\nis not known; cannot resolve {name}"
   match eType.getAppFn.constName?, lval with
   | some structName, LVal.fieldIdx _ idx =>
     if idx == 0 then
@@ -1326,11 +1334,14 @@ private def resolveLValAux (e : Expr) (eType : Expr) (lval : LVal) : TermElabM L
     let msg := mkUnknownIdentifierMessage m!"Invalid field `{fieldName}`: The environment does not contain `{Name.mkStr structName fieldName}`"
     throwLValErrorAt fullRef e eType msg
   | none, LVal.fieldName _ _ (some suffix) fullRef =>
-    if e.isConst then
-      throwUnknownConstantAt fullRef (e.constName! ++ suffix)
+    -- This may be a function constant whose implicit arguments have already been filled in:
+    let c := e.getAppFn
+    if c.isConst then
+      throwUnknownConstantAt fullRef (c.constName! ++ suffix)
     else
       throwInvalidFieldNotation e eType
-  | _, _ => throwInvalidFieldNotation e eType
+  | _, _ =>
+    throwInvalidFieldNotation e eType
 
 /-- whnfCore + implicit consumption.
    Example: given `e` with `eType := {α : Type} → (fun β => List β) α `, it produces `(e ?m, List ?m)` where `?m` is fresh metavariable. -/
@@ -1447,9 +1458,7 @@ where
             /- If we can't add `e` to `args`, we try to add it using a named argument, but this is only possible
                if there isn't an argument with the same name occurring before it. -/
             if !allowNamed || unusableNamedArgs.contains xDecl.userName then
-              throwError "\
-                Invalid field notation: Function `{.ofConstName fullName}` has a parameter with the expected type\
-                {indentExpr xDecl.type}\nbut it cannot be used"
+              throwUnusableParameter allowNamed xDecl
             else
               return (args, namedArgs.push { name := xDecl.userName, val := Arg.expr e })
         /- Advance `argIdx` and update seen named arguments. -/
@@ -1469,10 +1478,28 @@ where
         return m!"{.ofConstName baseName} ..."
       else
         return .ofConstName baseName
-    -- TODO: a bit wordy
     throwError m!"Invalid field notation: Function `{.ofConstName fullName}` does not have a usable \
-      parameter of type `{tyCtorMsg}` for which to substitute{indentExpr e}"
+      parameter of type `{tyCtorMsg}` for which to substitute{inlineExprTrailing e}"
       ++ .note m!"Such a parameter must be explicit, or implicit with a unique name, to be used by field notation"
+
+  throwUnusableParameter (allowNamed : Bool) (xDecl : MetavarDecl) :=
+    let note : MessageData := if !allowNamed && !xDecl.userName.hasMacroScopes then
+      .note m!"Field notation cannot refer to parameter `{xDecl.userName}` of `{.ofConstName fullName}` \
+        by name because that constant was coerced to a function"
+    else if allowNamed then
+      let param := if xDecl.userName.hasMacroScopes then .nil else m!" `{xDecl.userName}`"
+      .note m!"The parameter{param} of `{.ofConstName fullName}` cannot be referred to by name \
+         because that function has a preceding parameter of the same name"
+    else .nil
+    -- Transforming field notation into direct application is too involved to offer a confident
+    -- concrete edit suggestion here
+    let hint := MessageData.hint' <|
+      m!"Consider rewriting this application without field notation (e.g., `C.f x` instead of `x.f`)" ++
+      if allowNamed then
+        m!" or changing the parameter names of `{.ofConstName fullName}` to avoid this conflict"
+      else .nil
+    throwError m!"Invalid field notation: `{.ofConstName fullName}` has a parameter with \
+      expected type{indentExpr xDecl.type}\nbut it cannot be used" ++ note ++ hint
 
 /-- Adds the `TermInfo` for the field of a projection. See `Lean.Parser.Term.identProjKind`. -/
 private def addProjTermInfo

@@ -61,7 +61,7 @@ def semifriend (α : Type) [Friend α] := Friend.friend α
 def _root_.Bool.g (b : semifriend Nat) := !b
 
 /--
-error: Invalid field notation: Function 'Bool.g' does not have a parameter of type `Bool` for which `a` can be substituted
+error: Invalid field notation: Function `Bool.g` does not have a usable parameter of type `Bool` for which to substitute `a` ⏎
 
 Note: Such a parameter must be explicit, or implicit with a unique name, to be used by field notation
 -/
