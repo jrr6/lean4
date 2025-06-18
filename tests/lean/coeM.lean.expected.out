@@ -4,3 +4,9 @@ do
 do
   let a ← m
   pure a.val : EIO IO.Error Nat
+coeM.lean:33:18-33:28: error: Invalid dotted identifier notation: The expected type of `.some` is a metavariable:
+  ?_
+coeM.lean:31:0-31:11: error: ❌️ Docstring on `#guard_msgs` does not match generated message:
+
+error: Invalid dotted identifier notation: The expected type of `.some` is a metavariable:
+  ?_

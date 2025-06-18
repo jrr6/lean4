@@ -26,7 +26,7 @@ However, this dot notation fails since there is no `FinSet` argument.
 However, unfolding is the preferred method.
 -/
 /--
-error: Invalid field notation: Function 'Set.union' does not have a parameter of type `FinSet ...` for which `x` can be substituted
+error: Invalid field notation: Function `Set.union` does not have a usable parameter of type `FinSet ...` for which to substitute `x` ⏎
 
 Note: Such a parameter must be explicit, or implicit with a unique name, to be used by field notation
 -/
