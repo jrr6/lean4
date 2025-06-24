@@ -83,7 +83,7 @@ def Bar.bar : Bar true := {}
 /-- info: fun f => (fun x => false) f : Bar false → Bool -/
 #guard_msgs in #check fun (f : Bar false) => Bar.bar false f
 /--
-error: Invalid field notation: Function `Bar.bar` does not have a usable parameter of type `Bar ...` for which to substitute `f` ⏎
+error: Invalid field notation: Function `Bar.bar` does not have a usable parameter of type `Bar ...` for which to substitute `f`
 
 Note: Such a parameter must be explicit, or implicit with a unique name, to be used by field notation
 ---
@@ -95,7 +95,7 @@ info: fun f => sorry : (f : Bar false) → ?_ f
 /-- info: fun f => (fun x => false) f : Bar false → Bool -/
 #guard_msgs in #check fun (f : Bar false) => Bar.bar true false f
 /--
-error: Invalid field notation: Function `Bar.bar` does not have a usable parameter of type `Bar ...` for which to substitute `f` ⏎
+error: Invalid field notation: Function `Bar.bar` does not have a usable parameter of type `Bar ...` for which to substitute `f`
 
 Note: Such a parameter must be explicit, or implicit with a unique name, to be used by field notation
 ---

@@ -4,3 +4,12 @@ Hint: This function has the following named arguments: `α`, `β`, `f`, and `ini
 invalidNamedArgs.lean:9:4-9:18: error: Invalid argument name `flg` for function `f`
 
 Hint: This function has the following named arguments: `a` and `flag`
+invalidNamedArgs.lean:20:22-20:30: error: Invalid argument name `k` for function `h`
+
+Hint: This function has the following named arguments: `n` and `x`
+invalidNamedArgs.lean:21:23-21:31: error: Invalid argument name `k` for function `h`
+
+Hint: This function has the following named arguments: `n` and `y`
+invalidNamedArgs.lean:22:13-22:21: error: Invalid argument name `k` for function `h`
+
+Hint: This function has the following named arguments: `n`
