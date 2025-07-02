@@ -275,6 +275,8 @@ select granularity .all
 
 end DiffGranularity
 
+#info_trees in
+#check show True from by simp [Nat]
 
 /--
 Converts an array of diff actions into corresponding JSON interpretable by `tryThisDiffWidget`.
@@ -299,6 +301,8 @@ private def mkDiffString (ds : Array (Diff.Action × String)) : String :=
     | (.skip  , s) => s
   rangeStrs.foldl (· ++ ·) ""
 
+#synth MonadLog CoreM
+
 open Lean Meta Elab Tactic TryThis in
 /--
 Processes an array of `Suggestion`s into data that can be used to construct a code-action info leaf
@@ -306,7 +310,6 @@ and "try this" widget.
 -/
 def processSuggestions2 (ref : Syntax) (range : String.Range) (suggestions : Array TryThis.Suggestion)
     (codeActionPrefix? : Option String) : CoreM ProcessedSuggestions := do
-  dbg_trace "hello!"
   let map ← getFileMap
   -- FIXME: this produces incorrect results when `by` is at the beginning of the line, i.e.
   -- replacing `tac` in `by tac`, because the next line will only be 2 space indented
@@ -400,7 +403,8 @@ run_meta do
       suggestions := #["run_elab"]
     }
   let curRef ← getRef
-  logInfo <| .tagged `hint <| .ofLazyM do withRef curRef do
+  let fileMap ← getFileMap
+  logInfo <| .tagged `hint <| .ofLazyM do withRef curRef do withTheReader Core.Context (fun ctx => { ctx with fileMap }) do
     let { msg, suggestions, codeActionPrefix? } ← mkHint
     MessageData.hint2 msg suggestions curRef codeActionPrefix?
 
@@ -415,6 +419,7 @@ structure DummyInfo where
     let some _ := info.value.get? DummyInfo | pure #[]
     return #[{
       eager.title := "Hello!"
+      semiLazy? := some do return #[{ title := "hi" }]
     }]
 run_meta do
   logInfo (← getRef)
