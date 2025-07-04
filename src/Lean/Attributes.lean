@@ -50,7 +50,7 @@ instance : ToString AttributeKind where
 structure AttributeImpl extends AttributeImplCore where
   /-- This is run when the attribute is applied to a declaration `decl`. `stx` is the syntax of the attribute including arguments. -/
   add (decl : Name) (stx : Syntax) (kind : AttributeKind) : AttrM Unit
-  erase (decl : Name) : AttrM Unit := throwError "attribute cannot be erased"
+  erase (decl : Name) : AttrM Unit := throwError "Attribute cannot be erased"
   deriving Inhabited
 
 builtin_initialize attributeMapRef : IO.Ref (Std.HashMap Name AttributeImpl) ← IO.mkRef {}
@@ -60,7 +60,7 @@ def registerBuiltinAttribute (attr : AttributeImpl) : IO Unit := do
   let m ← attributeMapRef.get
   if m.contains attr.name then throw (IO.userError ("invalid builtin attribute declaration, '" ++ toString attr.name ++ "' has already been used"))
   unless (← initializing) do
-    throw (IO.userError "failed to register attribute, attributes can only be registered during initialization")
+    throw (IO.userError "Failed to register attribute: Attributes can only be registered during initialization")
   attributeMapRef.modify fun m => m.insert attr.name attr
 
 /-!
@@ -81,7 +81,7 @@ def Attribute.Builtin.ensureNoArgs (stx : Syntax) : AttrM Unit := do
     return ()
   else match stx with
     | Syntax.missing => return () -- In the elaborator, we use `Syntax.missing` when creating attribute views for simple attributes such as `class and `inline
-    | _              => throwErrorAt stx "unexpected attribute argument"
+    | _              => throwErrorAt stx "Unexpected attribute argument: This attribute takes no arguments"
 
 def Attribute.Builtin.getIdent? (stx : Syntax) : AttrM (Option Syntax) := do
   if stx.getKind == `Lean.Parser.Attr.simple then
@@ -93,12 +93,13 @@ def Attribute.Builtin.getIdent? (stx : Syntax) : AttrM (Option Syntax) := do
   else if stx.getKind == `Lean.Parser.Attr.«macro» || stx.getKind == `Lean.Parser.Attr.«export» then
     return some stx[1]
   else
-    throwErrorAt stx "unexpected attribute argument"
+    throwErrorAt stx "Unexpected attribute argument"
 
 def Attribute.Builtin.getIdent (stx : Syntax) : AttrM Syntax := do
   match (← getIdent? stx) with
   | some id => return id
-  | none    => throwErrorAt stx "unexpected attribute argument, identifier expected"
+  | none    =>
+    throwErrorAt stx "Unexpected attribute argument: Expected identifier, but found{indentD stx}"
 
 def Attribute.Builtin.getId? (stx : Syntax) : AttrM (Option Name) := do
   let ident? ← getIdent? stx
@@ -112,14 +113,31 @@ def getAttrParamOptPrio (optPrioStx : Syntax) : AttrM Nat :=
     return eval_prio default
   else match optPrioStx[0].isNatLit? with
     | some prio => return prio
-    | none => throwErrorAt optPrioStx "priority expected"
+    | none => throwErrorAt optPrioStx "Unexpected attribute argument: Expected a priority, but found{indentD optPrioStx}"
 
 def Attribute.Builtin.getPrio (stx : Syntax) : AttrM Nat := do
   if stx.getKind == `Lean.Parser.Attr.simple then
     getAttrParamOptPrio stx[1]
   else
-    throwErrorAt stx "unexpected attribute argument, optional priority expected"
+    throwErrorAt stx "Unexpected attribute argument: Expected an optional priority, but found{indentD stx}"
 
+section
+variable [Monad m] [MonadError m]
+
+def throwAttrMustBeGlobal (name : Name) (kind : AttributeKind) : m α :=
+  throwError m!"Invalid attribute kind: Attribute `{name}` must be global, not `{kind}`"
+    ++ .hint' m!"Delete the `{kind}` modifier to make this attribute global"
+
+def throwAttrDeclInImportedModule (attrName declName : Name) : m α :=
+  throwError "Cannot register attribute `{attrName}`: Declaration `{.ofConstName declName}` is in an imported module"
+
+def throwAttrNotInAsyncCtx (attrName declName : Name) (asyncPrefix? : Option Name) : m α :=
+  let asyncPrefix := asyncPrefix?.map (m!" `{·}`") |>.getD .nil
+  throwError "Cannot register attribute `{attrName}`: Declaration `{.ofConstName declName}` is not from the present async context {asyncPrefix}"
+
+def throwAttrDeclNotOfExpectedType (name : Name) (type : Expr) : m α :=
+  throwError m!"Cannot register attribute `{name}`: This attribute can only be added to declarations of type `{type}`"
+end
 
 /--
   Tag attributes are simple and efficient. They are useful for marking declarations in the modules where
@@ -158,12 +176,12 @@ def registerTagAttribute (name : Name) (descr : String)
     ref, name, descr, applicationTime
     add   := fun decl stx kind => do
       Attribute.Builtin.ensureNoArgs stx
-      unless kind == AttributeKind.global do throwError "invalid attribute '{name}', must be global"
+      unless kind == AttributeKind.global do throwAttrMustBeGlobal name kind
       let env ← getEnv
       unless (env.getModuleIdxFor? decl).isNone do
-        throwError "invalid attribute '{name}', declaration {.ofConstName decl} is in an imported module"
+        throwAttrDeclInImportedModule name decl
       unless env.asyncMayContain decl do
-        throwError "invalid attribute '{name}', declaration {.ofConstName decl} is not from the present async context {env.asyncPrefix?}"
+        throwAttrNotInAsyncCtx name decl env.asyncPrefix?
       validate decl
       modifyEnv fun env => ext.addEntry env decl
   }
@@ -176,9 +194,9 @@ namespace TagAttribute
 def setTag  [Monad m] [MonadError m] [MonadEnv m] (attr : TagAttribute) (decl : Name) : m Unit := do
   let env ← getEnv
   unless (env.getModuleIdxFor? decl).isNone do
-    throwError "invalid attribute '{attr.attr.name}', declaration {.ofConstName decl} is in an imported module"
+    throwAttrDeclInImportedModule attr.attr.name decl
   unless env.asyncMayContain decl do
-    throwError "invalid attribute '{attr.attr.name}', declaration {.ofConstName decl} is not from the present async context {env.asyncPrefix?}"
+    throwAttrNotInAsyncCtx attr.attr.name decl env.asyncPrefix?
   modifyEnv fun env => attr.ext.addEntry env decl
 
 def hasTag (attr : TagAttribute) (env : Environment) (decl : Name) : Bool :=
@@ -226,10 +244,10 @@ def registerParametricAttribute (impl : ParametricAttributeImpl α) : IO (Parame
   let attrImpl : AttributeImpl := {
     impl.toAttributeImplCore with
     add   := fun decl stx kind => do
-      unless kind == AttributeKind.global do throwError "invalid attribute '{impl.name}', must be global"
+      unless kind == AttributeKind.global do throwAttrMustBeGlobal impl.name kind
       let env ← getEnv
       unless (env.getModuleIdxFor? decl).isNone do
-        throwError "invalid attribute '{impl.name}', declaration is in an imported module"
+        throwAttrDeclInImportedModule impl.name decl
       let val ← impl.getParam decl stx
       modifyEnv fun env => ext.addEntry env (decl, val)
       try impl.afterSet decl val catch _ => setEnv env
@@ -249,9 +267,9 @@ def getParam? [Inhabited α] (attr : ParametricAttribute α) (env : Environment)
 
 def setParam (attr : ParametricAttribute α) (env : Environment) (decl : Name) (param : α) : Except String Environment :=
   if (env.getModuleIdxFor? decl).isSome then
-    Except.error ("invalid '" ++ toString attr.attr.name ++ "'.setParam, declaration is in an imported module")
+    Except.error (s!"Invalid `{attr.attr.name}.setParam`: Declaration `{decl}` is in an imported module")
   else if ((attr.ext.getState env).find? decl).isSome then
-    Except.error ("invalid '" ++ toString attr.attr.name ++ "'.setParam, attribute has already been set")
+    Except.error (s!"Invalid `{toString attr.attr.name}.setParam`: Attribute has already been set")
   else
     Except.ok (attr.ext.addEntry env (decl, param))
 
@@ -293,10 +311,10 @@ def registerEnumAttributes (attrDescrs : List (Name × String × α))
     descr           := descr
     add             := fun decl stx kind => do
       Attribute.Builtin.ensureNoArgs stx
-      unless kind == AttributeKind.global do throwError "invalid attribute '{name}', must be global"
+      unless kind == AttributeKind.global do throwAttrMustBeGlobal name kind
       let env ← getEnv
       unless (env.getModuleIdxFor? decl).isNone do
-        throwError "invalid attribute '{name}', declaration is in an imported module"
+        throwAttrDeclInImportedModule name decl
       validate decl val
       modifyEnv fun env => ext.addEntry env (decl, val)
     applicationTime := applicationTime
@@ -317,11 +335,11 @@ def getValue [Inhabited α] (attr : EnumAttributes α) (env : Environment) (decl
 
 def setValue (attrs : EnumAttributes α) (env : Environment) (decl : Name) (val : α) : Except String Environment := do
   if (env.getModuleIdxFor? decl).isSome then
-    throw s!"invalid '{attrs.ext.name}'.setValue, declaration is in an imported module"
+    throw s!"Invalid `{attrs.ext.name}.setValue`: Declaration `{decl}` is in an imported module"
   if !env.asyncMayContain decl then
-    throw s!"invalid '{attrs.ext.name}'.setValue, declaration is not from this async context"
+    throw s!"Invalid `{attrs.ext.name}.setValue`: Declaration `{decl}` is not from this async context `{env.asyncPrefix?}`"
   if ((attrs.ext.findStateAsync env decl).find? decl).isSome then
-    throw s!"invalid '{attrs.ext.name}'.setValue, attribute has already been set"
+    throw s!"Invalid `{attrs.ext.name}.setValue`: Attribute has already been set"
   return attrs.ext.addEntry env (decl, val)
 
 end EnumAttributes
